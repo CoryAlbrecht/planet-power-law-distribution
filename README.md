@@ -68,9 +68,9 @@ Output files: `exoplanet_data.xlsx`, `exoplanet_data.csv`
 
 With `-s` also creates scatter plots with:
 
-- `mass-vs-radius.xlsx/.csv/.png` - Planet Name, Mass (kg), Mass Err± (kg), Radius (m), Radius Err± (m)
-- `mass-vs-density.xlsx/.csv/.png` - Planet Name, Mass (kg), Mass Err± (kg), Density (g/cm³), Density Err±
-- `mass-vs-surface-gravity.xlsx/.csv/.png` - Planet Name, Mass (kg), Mass Err± (kg), Surface Gravity (m/s²), Err±
+- `mass-vs-radius.xlsx/.csv/.png` - pl_name, ppld_mass_kg, ppld_radius_m
+- `mass-vs-density.xlsx/.csv/.png` - pl_name, ppld_mass_kg, pl_dens
+- `mass-vs-surface-gravity.xlsx/.csv/.png` - pl_name, ppld_mass_kg, ppld_surf_grav_ms2
 
 No API key is required. The script queries NASA's public TAP service directly.
 
@@ -82,24 +82,24 @@ The workbook contains two sheets.
 
 ### Exoplanets sheet
 
-One row per confirmed exoplanet. Columns are colour-coded by parameter group:
+One row per confirmed exoplanet. Uses original NASA column names plus computed columns:
 
 | Group            | Columns                                                             |
 |------------------|---------------------------------------------------------------------|
-| Identity         | Planet name, host star, planet letter                               |
-| Discovery        | Method, year, facility                                              |
-| Orbit            | Period, semi-major axis                                             |
-| Mass (Jupiter)   | M_Jup with ±errors                                                  |
-| Mass (Earth)     | M_Earth with ±errors                                                |
-| Mass (kg)        | Mass in kg with ±errors                                             |
-| Radius (Jupiter) | R_Jup with ±errors                                                  |
-| Radius (Earth)   | R_Earth with ±errors                                                |
-| Radius (m)       | Radius in m with ±errors                                            |
-| Density          | g/cm³ with ±errors                                                  |
-| Surface Gravity  | Computed g in m/s² and g_Earth, with ±errors                        |
-| DM Class         | Durand-Manterola class (A/B/C), predicted g, and residual           |
-| Stellar          | T_eff, stellar radius and mass, insolation, equilibrium temperature |
-| System           | Distance, number of stars and planets in system                     |
+| Identity         | pl_name, hostname, pl_letter                               |
+| Discovery        | discoverymethod, disc_year, disc_facility                      |
+| Orbit            | pl_orbper, pl_orbsmax                                             |
+| Mass (Jupiter)   | pl_bmassj with ±errors                                                  |
+| Mass (Earth)     | pl_bmasse with ±errors                                                |
+| Computed Mass    | ppld_mass_kg with ±errors                                             |
+| Radius (Jupiter) | pl_radj with ±errors                                                  |
+| Radius (Earth)   | pl_rade with ±errors                                                |
+| Computed Radius | ppld_radius_m with ±errors                                            |
+| Density          | pl_dens with ±errors                                                  |
+| Surface Gravity  | ppld_surf_grav_ms2 and ppld_surf_grav_earth, with ±errors                        |
+| DM Class         | dm_class, dm_pred_g_ms2, dm_grav_residual           |
+| Stellar          | pl_eqt, pl_insol, st_teff, st_rad, st_mass |
+| System           | sy_dist, sy_snum, sy_pnum                     |
 
 ### Notes sheet
 
