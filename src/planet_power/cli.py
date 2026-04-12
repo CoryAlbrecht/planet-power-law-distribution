@@ -249,7 +249,7 @@ def _cleanup_data_files(keep: int) -> None:
         if match:
             timestamps.add(match.group(1))
 
-    timestamps = sorted(timestamps, reverse=True)  # type: list[str]
+    timestamps: list[str] = sorted(timestamps, reverse=True)
     to_delete: set[str] = set(timestamps[keep:])
 
     deleted_count = 0
