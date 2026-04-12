@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 import time
-from typing import Any
+from typing import Any, cast
 
 import matplotlib
 
@@ -200,7 +200,7 @@ def _create_split_files(
 
     for split in splits:
         base_path = os.path.join(DATA_DIR, f"{split['stem']}.{timestamp_filtered}")
-        df_split: pd.DataFrame = df[split["cols"]]
+        df_split = cast(pd.DataFrame, df[split["cols"]])
 
         df_split.to_excel(f"{base_path}.xlsx", index=False, engine="openpyxl")  # type: ignore[reportUnknownMemberType]
         df_split.to_csv(f"{base_path}.csv", index=False, quoting=1, encoding="utf-8")  # type: ignore[reportUnknownMemberType]
