@@ -1,0 +1,54 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"workbench.colorCustomizations": {
+			"activityBar.activeBackground": "#94cd8d",
+			"activityBar.background": "#94cd8d",
+			"activityBar.foreground": "#15202b",
+			"activityBar.inactiveForeground": "#15202b99",
+			"activityBarBadge.background": "#646dbb",
+			"activityBarBadge.foreground": "#e7e7e7",
+			"commandCenter.border": "#15202b99",
+			"editorGroup.border": "#94cd8d",
+			"panel.border": "#94cd8d",
+			"sash.hoverBorder": "#94cd8d",
+			"sideBar.border": "#94cd8d",
+			"statusBar.background": "#73be6a",
+			"statusBar.border": "#73be6a",
+			"statusBar.debuggingBackground": "#b56abe",
+			"statusBar.debuggingBorder": "#b56abe",
+			"statusBar.debuggingForeground": "#15202b",
+			"statusBar.foreground": "#15202b",
+			"statusBarItem.hoverBackground": "#55ab4a",
+			"statusBarItem.remoteBackground": "#73be6a",
+			"statusBarItem.remoteForeground": "#15202b",
+			"tab.activeBorder": "#94cd8d",
+			"titleBar.activeBackground": "#73be6a",
+			"titleBar.activeForeground": "#15202b",
+			"titleBar.border": "#73be6a",
+			"titleBar.inactiveBackground": "#73be6a99",
+			"titleBar.inactiveForeground": "#15202b99"
+		},
+		"peacock.color": "#73be6a",
+		"editor.formatOnSave": true,
+		"editor.fontFamily": "'Cascadia Code','XITS Math',Consolas, 'Droid Sans Mono', 'Courier New', monospace",
+		"editor.wordWrap": "wordWrapColumn",
+		"editor.formatOnPaste": true,
+		"markdownlint.lintWorkspaceGlobs": [
+			"**/*.{md,mkd,mdwn,mdown,markdown,markdn,mdtxt,mdtext,workbook}",
+			"!**/*.code-search",
+			"!**/bower_components",
+			"!**/node_modules",
+			"!**/.git",
+			"!**/vendor",
+			"!**/.venv"
+		]
+	},
+	"extensions": {
+		"recommendations": []
+	}
+}

@@ -1,0 +1,23 @@
+{
+  "recommendations": [
+    "ms-toolsai.datawrangler",
+    "mhutchie.git-graph",
+    "donjayamanne.githistory",
+    "github.vscode-github-actions",
+    "github.vscode-pull-request-github",
+    "darkriszty.markdown-table-prettify",
+    "davidanson.vscode-markdownlint",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy",
+    "KevinRose.vsc-python-indent",
+    "GitHub.remotehub",
+    "ms-python.vscode-python-envs",
+    "mechatroner.rainbow-csv",
+    "tushortz.python-extended-snippets",
+    "ms-python.autopep8",
+    "ms-python.black-formatter",
+    "ms-python.isort",
+    "johnpapa.vscode-peacock",
+    "ms-python.python",
+  ]
+}
