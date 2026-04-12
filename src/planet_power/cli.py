@@ -241,7 +241,7 @@ def _cleanup_data_files(keep: int) -> None:
             all_files.extend(glob.glob(os.path.join(DATA_DIR, f"{base}.*{ext}")))  # type: ignore[reportUnknownMemberType]
             all_files.extend(glob.glob(os.path.join(DATA_DIR, f"{base}.*.filter{ext}")))  # type: ignore[reportUnknownMemberType]
 
-    timestamp_pattern = re.compile(r"\.([0-9]{10})(?:\.filter)?\.?")
+    timestamp_pattern = re.compile(r"\.([0-9]{8}T[0-9]{6})(?:\.filter)?\.?")
 
     timestamp_set: set[str] = set()
     for f in all_files:
