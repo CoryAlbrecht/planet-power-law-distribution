@@ -1,6 +1,6 @@
 """Format and export the Excel workbook."""
 
-from typing import cast
+from typing import Any, cast
 
 import pandas as pd
 from openpyxl import load_workbook
@@ -90,9 +90,9 @@ def format_workbook(path: str, n_rows: int) -> None:
 
     ws.row_dimensions[1].height = 48
     for col_idx, cell in enumerate(ws[1], start=1):
-        col_name = cell.value or ""
-        group = COLUMN_GROUPS.get(col_name, "Identity")
-        grp_hex = GROUP_COLOURS.get(group, "CCCCCC")
+        col_name: str = cell.value or ""  # type: ignore[reportUnknownVariableType]
+        group: str = COLUMN_GROUPS.get(col_name, "Identity")
+        grp_hex: str = GROUP_COLOURS.get(group, "CCCCCC")
         r = int(grp_hex[0:2], 16)
         g = int(grp_hex[2:4], 16)
         b = int(grp_hex[4:6], 16)
@@ -142,7 +142,7 @@ def format_workbook(path: str, n_rows: int) -> None:
     ws.auto_filter.ref = ws.dimensions
 
     notes = wb.create_sheet("Notes")
-    notes_content = [
+    notes_content: list[list[str]] = [
         ["Exoplanet Dataset — Notes"],
         [],
         ["Source", "NASA Exoplanet Archive — PSCompPars table"],
@@ -218,7 +218,7 @@ def format_workbook(path: str, n_rows: int) -> None:
         ],
         ["", "DOI: 10.26133/NEA12"],
     ]
-    for row in notes_content:
+    for row in notes_content:  # type: ignore[reportUnknownVariableType]
         notes.append(row)
     notes.column_dimensions["A"].width = 26
     notes.column_dimensions["B"].width = 72
