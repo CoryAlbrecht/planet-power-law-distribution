@@ -20,12 +20,31 @@ A Python script that queries the [NASA Exoplanet Archive](https://exoplanetarchi
 
 ## Quickstart
 
-**Requirements:** Python 3.8+
+**Requirements:** Python 3.8+, git
+
+### Automated install (Linux/macOS)
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/CoryAlbrecht/planet-power-law-distribution/main/install.sh | bash
+```
+
+### Automated install (Windows)
+
+```powershell
+irm https://raw.githubusercontent.com/CoryAlbrecht/planet-power-law-distribution/main/install.ps1 | iex
+```
+
+### Manual install
+
+```bash
+# Clone repository
+git clone https://github.com/CoryAlbrecht/planet-power-law-distribution.git
+cd planet-power-law-distribution
+
 # Create and activate virtual environment
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate  # Linux/macOS
+# .\venv\Scripts\Activate.ps1  # Windows
 
 # Install package
 pip install -e .
