@@ -93,7 +93,7 @@ def _save_scatter_png(
     )
     df = df[valid]
     if len(df) == 0:
-        print(f"  No valid data to plot for {x_col} vs {y_col}")
+        print(f"\tNo valid data to plot for {x_col} vs {y_col}")
         return
 
     dpi = 100
@@ -133,7 +133,7 @@ def _create_split_files(
             .any(axis=1)
         )
         df = df[mask]
-        print(f"  Filtered to {len(df):,} rows (removed CALCULATED_VALUE)")
+        print(f"\tFiltered to {len(df):,} rows (removed CALCULATED_VALUE)")
     else:
         timestamp_filtered = timestamp
     splits: list[dict[str, Any]] = [
@@ -218,7 +218,7 @@ def _create_split_files(
         )
 
         print(
-            f"  Created {os.path.basename(base_path)}.xlsx, {os.path.basename(base_path)}.csv, {os.path.basename(base_path)}.png"
+            f"\nCreated {os.path.basename(base_path)}.xlsx, {os.path.basename(base_path)}.csv, {os.path.basename(base_path)}.png"
         )
 
 
@@ -265,7 +265,7 @@ def _cleanup_data_files(keep: int) -> None:
                     os.remove(path_filtered)
                     deleted_count += 1
 
-    print(f"Cleaned up {deleted_count} files, kept {keep} most recent set(s)")
+    print(f"\nCleaned up {deleted_count} files, kept {keep} most recent set(s)")
 
 
 def main() -> None:
@@ -355,15 +355,19 @@ def main() -> None:
 
     csv_output = f"{base_path}.csv"
     print(
-        f"Writing {len(df):,} rows to {os.path.basename(base_path)}.xlsx and {csv_output} …",
+        f"Writing {len(df):,} rows to {os.path.basename(base_path)}.xlsx and {os.path.basename(csv_output)} …",
         flush=True,
+        end="",
     )
     df.to_excel(f"{base_path}.xlsx", index=False, engine="openpyxl")  # type: ignore[reportUnknownMemberType]
     df.to_csv(csv_output, index=False, quoting=1, encoding="utf-8")
 
     format_workbook(f"{base_path}.xlsx", len(df))
 
-    print(f"Done. Files saved: {os.path.basename(base_path)}.xlsx, {csv_output}")
+    print(f"Done.")
+    print(
+        f"\nFiles saved: {os.path.basename(base_path)}.xlsx, {os.path.basename(csv_output)}"
+    )
 
     if args.split:
         _create_split_files(df, timestamp, filter_rows=args.filter)
@@ -386,6 +390,7 @@ def main() -> None:
     print("Durand-Manterola class counts:")
     for cls, n in counts.items():
         print(f"  Class {cls}: {n:,} planets")
+    print()
 
 
 if __name__ == "__main__":

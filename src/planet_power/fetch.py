@@ -1,7 +1,6 @@
 """Query NASA Exoplanet Archive TAP service."""
 
 import os
-import time
 from datetime import datetime, timedelta
 
 import requests
@@ -10,7 +9,9 @@ from io import StringIO
 
 from .constants import TAP_BASE, COLUMNS, WHERE
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
+DATA_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data"
+)
 RAW_DATA_FILE = os.path.join(DATA_DIR, "raw-data.csv")
 MAX_AGE = timedelta(weeks=1)
 
@@ -33,7 +34,9 @@ def fetch_data(force_refresh: bool = False) -> pd.DataFrame:
         DataFrame of exoplanet data.
     """
     if not force_refresh and _is_cache_valid(RAW_DATA_FILE):
-        print(f"Loading cached data from {RAW_DATA_FILE} …", flush=True)
+        print(
+            f"Loading cached data from {os.path.basename(RAW_DATA_FILE)} …", flush=True
+        )
         df = pd.read_csv(RAW_DATA_FILE, encoding="utf-8")
         print(f"  → {len(df):,} planets loaded from cache.")
         return df
@@ -51,6 +54,6 @@ def fetch_data(force_refresh: bool = False) -> pd.DataFrame:
 
     os.makedirs(DATA_DIR, exist_ok=True)
     df.to_csv(RAW_DATA_FILE, index=False, quoting=1, encoding="utf-8")
-    print(f"  → Saved raw data to {RAW_DATA_FILE}")
+    print(f"  → Saved raw data to {os.path.basename(RAW_DATA_FILE)}")
 
     return df

@@ -19,5 +19,7 @@
     "ms-python.isort",
     "johnpapa.vscode-peacock",
     "ms-python.python",
+    "ryu1kn.partial-diff",
+    "christian-kohler.path-intellisense",
   ]
 }

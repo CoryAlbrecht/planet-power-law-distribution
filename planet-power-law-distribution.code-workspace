@@ -46,7 +46,13 @@
 			"!**/.git",
 			"!**/vendor",
 			"!**/.venv"
-		]
+		],
+		"isort.check": true,
+		"git.alwaysShowStagedChangesResourceGroup": true,
+		"markdownlint.run": "onType",
+		"mediaPreview.video.autoPlay": true,
+		"mediaPreview.video.loop": true,
+		"merge-conflict.autoNavigateNextConflict.enabled": true
 	},
 	"extensions": {
 		"recommendations": []
