@@ -1,12 +1,4 @@
 {
-  "python.analysis.diagnosticMode": "workspace",
-  "python.analysis.typeCheckingMode": "basic",
-  "python.analysis.diagnostics": {
-    "reportUnknownMemberType": "none",
-    "reportUnknownVariableType": "none",
-    "reportUnknownArgumentType": "none",
-    "reportUnknownLambdaType": "none"
-  },
   "workbench.colorCustomizations": {
     "activityBar.activeBackground": "#94cd8d",
     "activityBar.background": "#94cd8d",
