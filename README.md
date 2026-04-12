@@ -1,6 +1,5 @@
 # Exoplanet Mass–Radius–Density–Gravity Dataset
 
-[![Python](https://img.shields.io/pypi/pyversions/planet-power-law-distribution.svg)](https://www.python.org/)
 [![numpy](https://img.shields.io/pypi/v/numpy?label=numpy)](https://numpy.org/)
 [![pandas](https://img.shields.io/pypi/v/pandas?label=pandas)](https://pandas.pydata.org/)
 [![matplotlib](https://img.shields.io/pypi/v/matplotlib?label=matplotlib)](https://matplotlib.org/)
@@ -108,12 +107,12 @@ Documents the TAP query used, physical constants, all computed column formulae, 
 
 ### CLI Options
 
-| Option | Description |
-|--------|------------|
-| `-f`, `--fetch` | Fetch data from NASA Exoplanet Archive |
-| `-s`, `--split` | Create split files for scatter plots |
-| `-F`, `--filter` | Filter out rows with CALCULATED_VALUE in reflink columns |
-| `-C KEEP`, `--clean-up KEEP` | Delete old files, keep KEEP most recent sets |
+| Option                       | Description                                              |
+|------------------------------|----------------------------------------------------------|
+| `-f`, `--fetch`              | Fetch data from NASA Exoplanet Archive                   |
+| `-s`, `--split`              | Create split files for scatter plots                     |
+| `-F`, `--filter`             | Filter out rows with CALCULATED_VALUE in reflink columns |
+| `-C KEEP`, `--clean-up KEEP` | Delete old files, keep KEEP most recent sets             |
 
 ---
 
