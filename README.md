@@ -231,8 +231,3 @@ For statistical methods
 
 > Kelly, Brandon C. (2007) Some Aspects of Measurement Error in Linear Regression of Astronomical Data
 > DOI: [10.1086/519947](https://iopscience.iop.org/article/10.1086/519947)
-
-Data assumptions
-
-> Chen, Jingjing; Kipping, David (2017) Probabilistic Forecasting of the Masses and Radii of Other Worlds
-> DOI: [10.3847/1538-4357/834/1/17](https://iopscience.iop.org/article/10.3847/1538-4357/834/1/17)
