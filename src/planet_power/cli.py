@@ -4,10 +4,11 @@ import argparse
 import os
 import time
 
-import warnings
-
 import matplotlib
+
 matplotlib.use("Agg")
+
+import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -17,7 +18,9 @@ from .fetch import fetch_data
 from .compute import compute_surface_gravity, assign_dm_class
 from .format import rename_columns, format_workbook
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
+DATA_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data"
+)
 
 
 def _make_timestamped_filename() -> str:
@@ -68,18 +71,22 @@ def _save_scatter_png(
     warnings.filterwarnings("ignore", module="matplotlib")
 
     # Convert to numeric and filter out invalid data (zeros, negative, inf, NaN)
-    x_vals = pd.to_numeric(df[x_col], errors='coerce')
-    y_vals = pd.to_numeric(df[y_col], errors='coerce')
-    xep = pd.to_numeric(df[x_err_plus_col], errors='coerce')
-    xem = pd.to_numeric(df[x_err_minus_col], errors='coerce')
-    yep = pd.to_numeric(df[y_err_plus_col], errors='coerce')
-    yem = pd.to_numeric(df[y_err_minus_col], errors='coerce')
+    x_vals = pd.to_numeric(df[x_col], errors="coerce")
+    y_vals = pd.to_numeric(df[y_col], errors="coerce")
+    xep = pd.to_numeric(df[x_err_plus_col], errors="coerce")
+    xem = pd.to_numeric(df[x_err_minus_col], errors="coerce")
+    yep = pd.to_numeric(df[y_err_plus_col], errors="coerce")
+    yem = pd.to_numeric(df[y_err_minus_col], errors="coerce")
 
     valid = (
-        (x_vals > 0) & (y_vals > 0) &
-        np.isfinite(x_vals) & np.isfinite(y_vals) &
-        np.isfinite(xep) & np.isfinite(xem) &
-        np.isfinite(yep) & np.isfinite(yem)
+        (x_vals > 0)
+        & (y_vals > 0)
+        & np.isfinite(x_vals)
+        & np.isfinite(y_vals)
+        & np.isfinite(xep)
+        & np.isfinite(xem)
+        & np.isfinite(yep)
+        & np.isfinite(yem)
     )
     df = df[valid]
     if len(df) == 0:
@@ -90,29 +97,31 @@ def _save_scatter_png(
     fig, ax = plt.subplots(figsize=(width_px / dpi, height_px / dpi), dpi=dpi)  # type: ignore[reportUnknownMemberType]
     assert isinstance(ax, Axes)
 
-    x         = df[x_col].values
-    y         = df[y_col].values
-    xerr      = [np.abs(df[x_err_minus_col].values), np.abs(df[x_err_plus_col].values)]
-    yerr      = [np.abs(df[y_err_minus_col].values), np.abs(df[y_err_plus_col].values)]
+    x = df[x_col].values
+    y = df[y_col].values
+    xerr = [np.abs(df[x_err_minus_col].values), np.abs(df[x_err_plus_col].values)]
+    yerr = [np.abs(df[y_err_minus_col].values), np.abs(df[y_err_plus_col].values)]
 
     # Plot points and error bars separately so each can carry its own colour.
-    ax.errorbar(
-        x, y,
+    ax.errorbar(  # type: ignore[reportUnknownMemberType]
+        x,
+        y,
         xerr=xerr,
         fmt="none",
         ecolor=x_err_color,
         capsize=2,
         alpha=0.4,
     )
-    ax.errorbar(
-        x, y,
+    ax.errorbar(  # type: ignore[reportUnknownMemberType]
+        x,
+        y,
         yerr=yerr,
         fmt="none",
         ecolor=y_err_color,
         capsize=2,
         alpha=0.4,
     )
-    ax.scatter(x, y, color=point_color, s=5, alpha=0.4, zorder=3)
+    ax.scatter(x, y, color=point_color, s=5, alpha=0.4, zorder=3)  # type: ignore[reportUnknownMemberType]
 
     ax.set_xscale("log")
     ax.set_yscale("log")
@@ -125,11 +134,17 @@ def _save_scatter_png(
     plt.close()
 
 
-def _create_split_files(df: pd.DataFrame, timestamp: str, filter_rows: bool = False) -> None:
+def _create_split_files(
+    df: pd.DataFrame, timestamp: str, filter_rows: bool = False
+) -> None:
     """Create split files for mass-vs-radius, mass-vs-density, mass-vs-surface-gravity."""
     if filter_rows:
         timestamp_filtered = f"{timestamp}.filter"
-        mask = ~df.astype(str).apply(lambda col: col.str.contains("CALCULATED_VALUE", na=False)).any(axis=1)
+        mask = (
+            ~df.astype(str)
+            .apply(lambda col: col.str.contains("CALCULATED_VALUE", na=False))
+            .any(axis=1)
+        )
         df = df[mask]
         print(f"  Filtered to {len(df):,} rows (removed CALCULATED_VALUE)")
     else:
@@ -139,66 +154,85 @@ def _create_split_files(df: pd.DataFrame, timestamp: str, filter_rows: bool = Fa
             "stem": "mass-vs-radius",
             "cols": [
                 "Planet Name",
-                "Mass (kg)", "Mass Err+ (kg)", "Mass Err- (kg)", "Mass Ref (M_Jup)",
-                "Radius (m)", "Radius Err+ (m)", "Radius Err- (m)", "Radius Ref (R_Jup)",
+                "Mass (kg)",
+                "Mass Err+ (kg)",
+                "Mass Err- (kg)",
+                "Mass Ref (M_Jup)",
+                "Radius (m)",
+                "Radius Err+ (m)",
+                "Radius Err- (m)",
+                "Radius Ref (R_Jup)",
             ],
-            "x_col":          "Mass (kg)",
+            "x_col": "Mass (kg)",
             "x_err_plus_col": "Mass Err+ (kg)",
-            "x_err_minus_col":"Mass Err- (kg)",
-            "y_col":          "Radius (m)",
+            "x_err_minus_col": "Mass Err- (kg)",
+            "y_col": "Radius (m)",
             "y_err_plus_col": "Radius Err+ (m)",
-            "y_err_minus_col":"Radius Err- (m)",
+            "y_err_minus_col": "Radius Err- (m)",
         },
         {
             "stem": "mass-vs-density",
             "cols": [
                 "Planet Name",
-                "Mass (kg)", "Mass Err+ (kg)", "Mass Err- (kg)", "Mass Ref (M_Jup)",
-                "Density (g/cm³)", "Density Err+ (g/cm³)", "Density Err- (g/cm³)", "Density Ref",
+                "Mass (kg)",
+                "Mass Err+ (kg)",
+                "Mass Err- (kg)",
+                "Mass Ref (M_Jup)",
+                "Density (g/cm³)",
+                "Density Err+ (g/cm³)",
+                "Density Err- (g/cm³)",
+                "Density Ref",
             ],
-            "x_col":          "Mass (kg)",
+            "x_col": "Mass (kg)",
             "x_err_plus_col": "Mass Err+ (kg)",
-            "x_err_minus_col":"Mass Err- (kg)",
-            "y_col":          "Density (g/cm³)",
+            "x_err_minus_col": "Mass Err- (kg)",
+            "y_col": "Density (g/cm³)",
             "y_err_plus_col": "Density Err+ (g/cm³)",
-            "y_err_minus_col":"Density Err- (g/cm³)",
+            "y_err_minus_col": "Density Err- (g/cm³)",
         },
         {
             "stem": "mass-vs-surface-gravity",
             "cols": [
                 "Planet Name",
-                "Mass (kg)", "Mass Err+ (kg)", "Mass Err- (kg)", "Mass Ref (M_Jup)",
-                "Surface Gravity (m/s²)", "Surf. Grav. Err+ (m/s²)", "Surf. Grav. Err- (m/s²)",
+                "Mass (kg)",
+                "Mass Err+ (kg)",
+                "Mass Err- (kg)",
+                "Mass Ref (M_Jup)",
+                "Surface Gravity (m/s²)",
+                "Surf. Grav. Err+ (m/s²)",
+                "Surf. Grav. Err- (m/s²)",
             ],
-            "x_col":          "Mass (kg)",
+            "x_col": "Mass (kg)",
             "x_err_plus_col": "Mass Err+ (kg)",
-            "x_err_minus_col":"Mass Err- (kg)",
-            "y_col":          "Surface Gravity (m/s²)",
+            "x_err_minus_col": "Mass Err- (kg)",
+            "y_col": "Surface Gravity (m/s²)",
             "y_err_plus_col": "Surf. Grav. Err+ (m/s²)",
-            "y_err_minus_col":"Surf. Grav. Err- (m/s²)",
+            "y_err_minus_col": "Surf. Grav. Err- (m/s²)",
         },
     ]
 
     for split in splits:
         base_path = os.path.join(DATA_DIR, f"{split['stem']}.{timestamp_filtered}")
-        df_split  = df[split["cols"]]
+        df_split = df[split["cols"]]
 
         df_split.to_excel(f"{base_path}.xlsx", index=False, engine="openpyxl")
         df_split.to_csv(f"{base_path}.csv", index=False, quoting=1, encoding="utf-8")
         format_workbook(f"{base_path}.xlsx", len(df_split))
 
         _save_scatter_png(
-            df            = df_split,
-            output_path   = f"{base_path}.png",
-            x_col         = split["x_col"],
-            x_err_plus_col= split["x_err_plus_col"],
+            df=df_split,
+            output_path=f"{base_path}.png",
+            x_col=split["x_col"],
+            x_err_plus_col=split["x_err_plus_col"],
             x_err_minus_col=split["x_err_minus_col"],
-            y_col         = split["y_col"],
-            y_err_plus_col= split["y_err_plus_col"],
+            y_col=split["y_col"],
+            y_err_plus_col=split["y_err_plus_col"],
             y_err_minus_col=split["y_err_minus_col"],
         )
 
-        print(f"  Created {os.path.basename(base_path)}.xlsx, {os.path.basename(base_path)}.csv, {os.path.basename(base_path)}.png")
+        print(
+            f"  Created {os.path.basename(base_path)}.xlsx, {os.path.basename(base_path)}.csv, {os.path.basename(base_path)}.png"
+        )
 
 
 def _cleanup_data_files(keep: int) -> None:
@@ -206,7 +240,12 @@ def _cleanup_data_files(keep: int) -> None:
     import glob
     import re
 
-    base_names = ["exoplanet_data", "mass-vs-radius", "mass-vs-density", "mass-vs-surface-gravity"]
+    base_names = [
+        "exoplanet_data",
+        "mass-vs-radius",
+        "mass-vs-density",
+        "mass-vs-surface-gravity",
+    ]
     extensions = [".xlsx", ".csv", ".png"]
 
     all_files = []
@@ -248,22 +287,26 @@ def main() -> None:
         description="Fetch exoplanet data from NASA Exoplanet Archive and compute surface gravity."
     )
     parser.add_argument(
-        "-f", "--fetch",
+        "-f",
+        "--fetch",
         action="store_true",
         help="Fetch data from NASA Exoplanet Archive and generate output files",
     )
     parser.add_argument(
-        "-s", "--split",
+        "-s",
+        "--split",
         action="store_true",
         help="Create split files: mass-vs-radius, mass-vs-density, mass-vs-surface-gravity",
     )
     parser.add_argument(
-        "-F", "--filter",
+        "-F",
+        "--filter",
         action="store_true",
         help="Filter out rows with 'CALCULATED_VALUE' (use with --split only)",
     )
     parser.add_argument(
-        "-C", "--clean-up",
+        "-C",
+        "--clean-up",
         type=int,
         nargs="?",
         const=1,
@@ -271,7 +314,8 @@ def main() -> None:
         help="Keep only N most recent file sets (default: 1)",
     )
     parser.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         default=DEFAULT_OUTPUT,
         help="Output Excel file (default: auto-generated timestamped name)",
     )
@@ -291,13 +335,22 @@ def main() -> None:
 
     if args.split and not args.fetch:
         import glob as g
-        existing = sorted(g.glob(os.path.join(DATA_DIR, "exoplanet_data.*.xlsx")), key=os.path.getmtime, reverse=True)
+
+        existing = sorted(
+            g.glob(os.path.join(DATA_DIR, "exoplanet_data.*.xlsx")),
+            key=os.path.getmtime,
+            reverse=True,
+        )
         if not existing:
-            parser.error("--split requires --fetch when no existing exoplanet_data file found")
+            parser.error(
+                "--split requires --fetch when no existing exoplanet_data file found"
+            )
         latest = existing[0]
-        timestamp = os.path.basename(latest).replace("exoplanet_data.", "").replace(".xlsx", "")
+        timestamp = (
+            os.path.basename(latest).replace("exoplanet_data.", "").replace(".xlsx", "")
+        )
         print(f"Using existing exoplanet_data.{timestamp}.xlsx")
-        df = pd.read_excel(latest, sheet_name="Exoplanets") # add a dtype parameter
+        df = pd.read_excel(latest, sheet_name="Exoplanets")  # add a dtype parameter
         _create_split_files(df, timestamp, filter_rows=args.filter)
         return
 
@@ -314,7 +367,10 @@ def main() -> None:
     base_path = os.path.join(DATA_DIR, f"exoplanet_data.{timestamp}")
 
     csv_output = f"{base_path}.csv"
-    print(f"Writing {len(df):,} rows to {os.path.basename(base_path)}.xlsx and {csv_output} …", flush=True)
+    print(
+        f"Writing {len(df):,} rows to {os.path.basename(base_path)}.xlsx and {csv_output} …",
+        flush=True,
+    )
     df.to_excel(f"{base_path}.xlsx", index=False, engine="openpyxl")
     df.to_csv(csv_output, index=False, quoting=1, encoding="utf-8")
 
@@ -327,7 +383,9 @@ def main() -> None:
 
     print()
     print("Summary statistics:")
-    print(f"  Planets with surface gravity computed : {df['Surface Gravity (m/s²)'].notna().sum():,}")
+    print(
+        f"  Planets with surface gravity computed : {df['Surface Gravity (m/s²)'].notna().sum():,}"
+    )
     print(
         f"  Surface gravity range (m/s²)          : "
         f"{df['Surface Gravity (m/s²)'].min():.2f} – {df['Surface Gravity (m/s²)'].max():.2f}"
