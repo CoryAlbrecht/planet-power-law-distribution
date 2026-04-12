@@ -1,5 +1,8 @@
 # Exoplanet Mass–Radius–Density–Gravity Dataset
 
+[![PyPI](https://img.shields.io/pypi/v/planet-power-law-distribution.svg)](https://pypi.org/project/planet-power-law-distribution/)
+[![Python](https://img.shields.io/pypi/pyversions/planet-power-law-distribution.svg)](https://pypi.org/project/planet-power-law-distribution/)
+
 A Python script that queries the [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) for all confirmed exoplanets with known mass, radius, and density, computes surface gravity with propagated uncertainties, classifies each planet using the Durand-Manterola (2011) three-class scheme, and exports the result as a formatted Excel workbook.
 
 ---
@@ -52,8 +55,8 @@ pip install -e .
 # Fetch data and generate output files
 planet-power -f
 
-# Optional: Create split files for plotting
-planet-power -f -s
+# Optional: Create split files for plotting (with filtering)
+planet-power -f -s -F
 
 # Clean up old files, keep only 1 most recent set
 planet-power -C 1
@@ -61,7 +64,7 @@ planet-power -C 1
 
 Output files: `exoplanet_data.xlsx`, `exoplanet_data.csv`
 
-With `-s` also creates:
+With `-s` also creates scatter plots with:
 
 - `mass-vs-radius.xlsx/.csv/.png` - Planet Name, Mass (kg), Mass Err± (kg), Radius (m), Radius Err± (m)
 - `mass-vs-density.xlsx/.csv/.png` - Planet Name, Mass (kg), Mass Err± (kg), Density (g/cm³), Density Err±
@@ -100,6 +103,15 @@ One row per confirmed exoplanet. Columns are colour-coded by parameter group:
 
 Documents the TAP query used, physical constants, all computed column formulae, the Durand-Manterola classification scheme, and citation information.
 
+### CLI Options
+
+| Option | Description |
+|--------|------------|
+| `-f`, `--fetch` | Fetch data from NASA Exoplanet Archive |
+| `-s`, `--split` | Create split files for scatter plots |
+| `-F`, `--filter` | Filter out rows with CALCULATED_VALUE in reflink columns |
+| `-C KEEP`, `--clean-up KEEP` | Delete old files, keep KEEP most recent sets |
+
 ---
 
 ## Methodology
@@ -108,7 +120,7 @@ Documents the TAP query used, physical constants, all computed column formulae, 
 
 Data are pulled from the NASA Exoplanet Archive **PSCompPars** (Planetary Systems Composite Parameters) table via the [TAP service](https://exoplanetarchive.ipac.caltech.edu/docs/TAP/usingTAP.html). This table provides one row per confirmed planet, drawing parameters from the best available published reference for each quantity. Parameters for a given planet may therefore come from different papers and are not guaranteed to be internally self-consistent.
 
-The query filters for rows where all three of `pl_bmassj`, `pl_radj`, and `pl_dens` are non-null. Note that the archive calculates density from mass and radius (assuming a spherical planet) when no directly measured density is available; such rows are flagged as "Calculated Value" in the `pl_dens_reflink` column, which is not included in this dataset but can be retrieved separately if needed.
+The query filters for rows where (mass is non-null) AND (radius is non-null) AND density is non-null. Either Jupiter OR Earth units are acceptable for mass and radius. Note that the archive calculates density from mass and radius (assuming a spherical planet) when no directly measured density is available; such rows are flagged as "Calculated Value" in the `pl_dens_reflink` column, which is not included in this dataset but can be retrieved separately if needed.
 
 **Radius columns:** `pl_radj` and `pl_rade` represent the transit radius — the planet radius inferred from the fractional dimming of the host star during transit. For non-transiting planets, this is derived from a mass-radius relation (Chen & Kipping 2017). The reference unit for Jupiter radii is the equatorial radius at the 1-bar pressure level; the exact value used varies by source paper and is not standardised across the archive.
 
@@ -186,7 +198,7 @@ Three distinct groups of planets that can be seen in the unfiltered data
 
 But the inflection points between the groups are oddly sharp. When a planet has a measured mass but no observed transit radius, the NASA Exoplanet Archive calculates the radius using the Chen & Kipping piecewise power law. That relation has hard breakpoints built into it — the Archive's own documentation lists the exact boundaries at 2.04, 132, and 26,600 M_Earth, or 1.22×10^25 kg, 7.90×10^26 kg, and 1.589×10^29 kg.
 
-The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can be filtered out when creating the split files for each comaprison vs mass. The three groups exist after such filtering but are much more fuzzy and closer to Durand-Manterola's originals ranges.
+The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can be filtered out when creating the split files for each comparison vs mass. The three groups exist after such filtering but are much more fuzzy and closer to Durand-Manterola's originals ranges.
 
 ---
 
