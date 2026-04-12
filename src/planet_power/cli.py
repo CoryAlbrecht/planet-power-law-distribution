@@ -247,7 +247,7 @@ def _cleanup_data_files(keep: int) -> None:
     for f in all_files:
         match = timestamp_pattern.search(os.path.basename(f))
         if match:
-            timestamps.add(match.group(1))
+            timestamps.add(match.group(1))  # type: ignore[reportUnknownVariableType]
 
     timestamps = sorted(timestamps, reverse=True)  # type: list[str]
     to_delete: set[str] = set(timestamps[keep:])
