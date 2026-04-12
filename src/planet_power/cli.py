@@ -87,7 +87,7 @@ def _save_scatter_png(
         return
 
     dpi = 100
-    fig, ax = plt.subplots(figsize=(width_px / dpi, height_px / dpi), dpi=dpi)
+    fig, ax = plt.subplots(figsize=(width_px / dpi, height_px / dpi), dpi=dpi)  # type: ignore[reportUnknownMemberType]
     assert isinstance(ax, Axes)
 
     x         = df[x_col].values
