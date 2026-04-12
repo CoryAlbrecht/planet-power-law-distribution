@@ -1,9 +1,12 @@
 """Format and export the Excel workbook."""
 
+from typing import cast
+
 import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.worksheet import Worksheet
 
 from .constants import GROUP_COLOURS, COLUMN_GROUPS, G, M_JUP_KG, R_JUP_M, G_EARTH
 
@@ -72,7 +75,7 @@ def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
 def format_workbook(path: str, n_rows: int) -> None:
     """Apply professional formatting to the saved workbook."""
     wb = load_workbook(path)
-    ws = wb.active
+    ws = cast(Worksheet, wb.active)
     ws.title = "Exoplanets"
 
     header_font = Font(name="Arial", bold=True, size=10, color="FFFFFF")
