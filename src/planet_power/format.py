@@ -81,8 +81,6 @@ def format_workbook(path: str, n_rows: int) -> None:
     header_font = Font(name="Arial", bold=True, size=10, color="FFFFFF")
     data_font = Font(name="Arial", size=9)
     header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    data_align_l = Alignment(horizontal="left", vertical="center")
-    data_align_r = Alignment(horizontal="right", vertical="center")
     data_align_c = Alignment(horizontal="center", vertical="center")
     thin_border = Border(
         left=Side(style="thin", color="CCCCCC"),
