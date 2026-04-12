@@ -8,7 +8,7 @@ G_EARTH = 9.80665
 DM_AB_KG = 5.0e25
 DM_BC_KG = 1.0e27
 
-DM_GRAVITY = {
+DM_GRAVITY: dict[str, tuple[float, float]] = {
     "A": (2e-10, 0.4282),
     "B": (14937, -0.1219),
     "C": (4e-28, 1.0482),
@@ -55,7 +55,7 @@ COLUMNS = [
     "sy_pnum",
 ]
 
-WHERE = "pl_bmassj IS NOT NULL AND pl_radj IS NOT NULL AND pl_dens IS NOT NULL"
+WHERE = "(pl_bmassj IS NOT NULL OR pl_bmasse IS NOT NULL) AND (pl_radj IS NOT NULL OR pl_rade IS NOT NULL) AND pl_dens IS NOT NULL"
 
 GROUP_COLOURS = {
     "Identity": "D9EAD3",
