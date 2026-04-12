@@ -185,16 +185,16 @@ def _create_split_files(
                 "ppld_mass_kg_err1",
                 "ppld_mass_kg_err2",
                 "pl_bmassj_reflink",
-                "ppld_surfgrav_ms2",
-                "ppld_surfgrav_ms2_err1",
-                "ppld_surfgrav_ms2_err2",
+                "ppld_surf_grav_ms2",
+                "ppld_surf_grav_ms2_err1",
+                "ppld_surf_grav_ms2_err2",
             ],
             "x_col": "ppld_mass_kg",
             "x_err_plus_col": "ppld_mass_kg_err1",
             "x_err_minus_col": "ppld_mass_kg_err2",
-            "y_col": "ppld_surfgrav_ms2",
-            "y_err_plus_col": "ppld_surfgrav_ms2_err1",
-            "y_err_minus_col": "ppld_surfgrav_ms2_err2",
+            "y_col": "ppld_surf_grav_ms2",
+            "y_err_plus_col": "ppld_surf_grav_ms2_err1",
+            "y_err_minus_col": "ppld_surf_grav_ms2_err2",
         },
     ]
 
@@ -375,15 +375,15 @@ def main() -> None:
     print()
     print("Summary statistics:")
     print(
-        f"  Planets with surface gravity computed : {df['ppld_surfgrav_ms2'].notna().sum():,}"
+        f"  Planets with surface gravity computed : {df['ppld_surf_grav_ms2'].notna().sum():,}"
     )
     print(
         f"  Surface gravity range (m/s²)          : "
-        f"{df['ppld_surfgrav_ms2'].min():.2f} – {df['ppld_surfgrav_ms2'].max():.2f}"
+        f"{df['ppld_surf_grav_ms2'].min():.2f} – {df['ppld_surf_grav_ms2'].max():.2f}"
     )
     print(
         f"  Surface gravity range (g_Earth)       : "
-        f"{df['ppld_surfgrav_g'].min():.3f} – {df['ppld_surfgrav_g'].max():.3f}"
+        f"{df['ppld_surf_grav_earth'].min():.3f} – {df['ppld_surf_grav_earth'].max():.3f}"
     )
     print()
     counts = df["dm_class"].value_counts().sort_index()

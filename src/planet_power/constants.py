@@ -122,7 +122,7 @@ COLUMN_GROUPS = {
     "ppld_surfgrav_g_err1": "Surface Gravity",
     "ppld_surfgrav_g_err2": "Surface Gravity",
     "dm_class": "DM Class",
-    "dm_predgrav_ms2": "DM Class",
-    "dm_predgrav_g": "DM Class",
-    "dm_predgrav_g_res": "DM Class",
+    "dm_pred_g_ms2": "DM Class",
+    "dm_pred_g_earth": "DM Class",
+    "dm_grav_residual": "DM Class",
 }

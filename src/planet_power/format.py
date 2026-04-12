@@ -11,24 +11,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from .constants import GROUP_COLOURS, COLUMN_GROUPS, G, M_JUP_KG, R_JUP_M, G_EARTH
 
 
-COLUMN_RENAME = {
-    "mass_kg": "ppld_mass_kg",
-    "mass_kg_err1": "ppld_mass_kg_err1",
-    "mass_kg_err2": "ppld_mass_kg_err2",
-    "radius_m": "ppld_rad_m",
-    "radius_m_err1": "ppld_rad_m_err1",
-    "radius_m_err2": "ppld_rad_m_err2",
-    "surf_grav_ms2": "ppld_surfgrav_ms2",
-    "surf_grav_earth": "ppld_surfgrav_g",
-    "surf_grav_ms2_err1": "ppld_surfgrav_ms2_err1",
-    "surf_grav_ms2_err2": "ppld_surfgrav_ms2_err2",
-    "surf_grav_earth_err1": "ppld_surfgrav_g_err1",
-    "surf_grav_earth_err2": "ppld_surfgrav_g_err2",
-    "dm_class": "dm_class",
-    "dm_pred_g_ms2": "dm_predgrav_ms2",
-    "dm_pred_g_earth": "dm_predgrav_g",
-    "dm_grav_residual": "dm_predgrav_g_res",
-}
+COLUMN_RENAME = {}
 
 
 def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -89,7 +72,14 @@ def format_workbook(path: str, n_rows: int) -> None:
         "Orbital Period (days)": 16,
         "Semi-Major Axis (AU)": 16,
     }
-    num_fmt_cols = {"Mass (kg)", "Mass Err+ (kg)", "Mass Err- (kg)", "Radius (m)", "Radius Err+ (m)", "Radius Err- (m)"}
+    num_fmt_cols = {
+        "Mass (kg)",
+        "Mass Err+ (kg)",
+        "Mass Err- (kg)",
+        "Radius (m)",
+        "Radius Err+ (m)",
+        "Radius Err- (m)",
+    }
     for col_idx, cell in enumerate(ws[1], start=1):
         col_letter = get_column_letter(col_idx)
         name: str = cell.value or ""  # type: ignore[reportUnknownMemberType]
