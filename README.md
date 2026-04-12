@@ -206,7 +206,7 @@ The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can b
 
 **Add escape velocity.** Durand-Manterola's toy model (Figure 5) uses escape velocity to explain volatile retention in Class B. This is straightforward to compute from the same mass and radius data and would add physical context to the dataset.
 
-**Add more advanced data filtering.** Currently all rows where any or all of the fields `pl_bmassj_reflink`, `pl_bmasse_reflink`, `pl_radj_reflink`, `pl_rade_reflink`, and `pl_dens_reflink` containing the string `CALCULATED_VALUE` are removed from the data set before graphing the scatter plots. More research needs to be done to see if such indiscriminate filtering because they are all 'contaminated' by the Chen & Kipping piecewise segments, or if that issue is limited to the radius fields.
+**Add more advanced data filtering.** Currently all rows where any or all of the fields `pl_bmassj_reflink`, `pl_bmasse_reflink`, `pl_radj_reflink`, `pl_rade_reflink`, and `pl_dens_reflink` containing the string `CALCULATED_VALUE` are removed from the data set before graphing the scatter plots. More research needs to be done to see if such indiscriminate filtering in necessary because they are all affected by the Chen & Kipping piecewise segments, or if that issue is limited to the radius fields.
 
 ---
 
