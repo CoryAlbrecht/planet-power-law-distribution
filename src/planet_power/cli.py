@@ -140,61 +140,61 @@ def _create_split_files(
         {
             "stem": "mass-vs-radius",
             "cols": [
-                "Planet Name",
-                "Mass (kg)",
-                "Mass Err+ (kg)",
-                "Mass Err- (kg)",
-                "Mass Ref (M_Jup)",
-                "Radius (m)",
-                "Radius Err+ (m)",
-                "Radius Err- (m)",
-                "Radius Ref (R_Jup)",
+                "pl_name",
+                "ppld_mass_kg",
+                "ppld_mass_kg_err1",
+                "ppld_mass_kg_err2",
+                "pl_bmassj_reflink",
+                "ppld_rad_m",
+                "ppld_rad_m_err1",
+                "ppld_rad_m_err2",
+                "pl_radj_reflink",
             ],
-            "x_col": "Mass (kg)",
-            "x_err_plus_col": "Mass Err+ (kg)",
-            "x_err_minus_col": "Mass Err- (kg)",
-            "y_col": "Radius (m)",
-            "y_err_plus_col": "Radius Err+ (m)",
-            "y_err_minus_col": "Radius Err- (m)",
+            "x_col": "ppld_mass_kg",
+            "x_err_plus_col": "ppld_mass_kg_err1",
+            "x_err_minus_col": "ppld_mass_kg_err2",
+            "y_col": "ppld_rad_m",
+            "y_err_plus_col": "ppld_rad_m_err1",
+            "y_err_minus_col": "ppld_rad_m_err2",
         },
         {
             "stem": "mass-vs-density",
             "cols": [
-                "Planet Name",
-                "Mass (kg)",
-                "Mass Err+ (kg)",
-                "Mass Err- (kg)",
-                "Mass Ref (M_Jup)",
-                "Density (g/cm³)",
-                "Density Err+ (g/cm³)",
-                "Density Err- (g/cm³)",
-                "Density Ref",
+                "pl_name",
+                "ppld_mass_kg",
+                "ppld_mass_kg_err1",
+                "ppld_mass_kg_err2",
+                "pl_bmassj_reflink",
+                "pl_dens",
+                "pl_denserr1",
+                "pl_denserr2",
+                "pl_dens_reflink",
             ],
-            "x_col": "Mass (kg)",
-            "x_err_plus_col": "Mass Err+ (kg)",
-            "x_err_minus_col": "Mass Err- (kg)",
-            "y_col": "Density (g/cm³)",
-            "y_err_plus_col": "Density Err+ (g/cm³)",
-            "y_err_minus_col": "Density Err- (g/cm³)",
+            "x_col": "ppld_mass_kg",
+            "x_err_plus_col": "ppld_mass_kg_err1",
+            "x_err_minus_col": "ppld_mass_kg_err2",
+            "y_col": "pl_dens",
+            "y_err_plus_col": "pl_denserr1",
+            "y_err_minus_col": "pl_denserr2",
         },
         {
             "stem": "mass-vs-surface-gravity",
             "cols": [
-                "Planet Name",
-                "Mass (kg)",
-                "Mass Err+ (kg)",
-                "Mass Err- (kg)",
-                "Mass Ref (M_Jup)",
-                "Surface Gravity (m/s²)",
-                "Surf. Grav. Err+ (m/s²)",
-                "Surf. Grav. Err- (m/s²)",
+                "pl_name",
+                "ppld_mass_kg",
+                "ppld_mass_kg_err1",
+                "ppld_mass_kg_err2",
+                "pl_bmassj_reflink",
+                "ppld_surfgrav_ms2",
+                "ppld_surfgrav_ms2_err1",
+                "ppld_surfgrav_ms2_err2",
             ],
-            "x_col": "Mass (kg)",
-            "x_err_plus_col": "Mass Err+ (kg)",
-            "x_err_minus_col": "Mass Err- (kg)",
-            "y_col": "Surface Gravity (m/s²)",
-            "y_err_plus_col": "Surf. Grav. Err+ (m/s²)",
-            "y_err_minus_col": "Surf. Grav. Err- (m/s²)",
+            "x_col": "ppld_mass_kg",
+            "x_err_plus_col": "ppld_mass_kg_err1",
+            "x_err_minus_col": "ppld_mass_kg_err2",
+            "y_col": "ppld_surfgrav_ms2",
+            "y_err_plus_col": "ppld_surfgrav_ms2_err1",
+            "y_err_minus_col": "ppld_surfgrav_ms2_err2",
         },
     ]
 
@@ -375,18 +375,18 @@ def main() -> None:
     print()
     print("Summary statistics:")
     print(
-        f"  Planets with surface gravity computed : {df['Surface Gravity (m/s²)'].notna().sum():,}"
+        f"  Planets with surface gravity computed : {df['ppld_surfgrav_ms2'].notna().sum():,}"
     )
     print(
         f"  Surface gravity range (m/s²)          : "
-        f"{df['Surface Gravity (m/s²)'].min():.2f} – {df['Surface Gravity (m/s²)'].max():.2f}"
+        f"{df['ppld_surfgrav_ms2'].min():.2f} – {df['ppld_surfgrav_ms2'].max():.2f}"
     )
     print(
         f"  Surface gravity range (g_Earth)       : "
-        f"{df['Surface Gravity (g_Earth)'].min():.3f} – {df['Surface Gravity (g_Earth)'].max():.3f}"
+        f"{df['ppld_surfgrav_g'].min():.3f} – {df['ppld_surfgrav_g'].max():.3f}"
     )
     print()
-    counts = df["DM Class"].value_counts().sort_index()
+    counts = df["dm_class"].value_counts().sort_index()
     print("Durand-Manterola class counts:")
     for cls, n in counts.items():
         print(f"  Class {cls}: {n:,} planets")
