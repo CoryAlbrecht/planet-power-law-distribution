@@ -4,6 +4,10 @@ import argparse
 import os
 import time
 
+import warnings
+
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -61,10 +65,6 @@ def _save_scatter_png(
     width_px : Output image width in pixels (default: 1920).
     height_px : Output image height in pixels (default: 1080).
     """
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    import warnings
     warnings.filterwarnings("ignore", module="matplotlib")
 
     # Convert to numeric and filter out invalid data (zeros, negative, inf, NaN)
