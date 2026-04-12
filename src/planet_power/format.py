@@ -105,7 +105,7 @@ def format_workbook(path: str, n_rows: int) -> None:
     for row in ws.iter_rows(min_row=2, max_row=n_rows + 1):
         for cell in row:
             col_name: str = ws.cell(row=1, column=cell.column).value or ""  # type: ignore[reportUnknownMemberType]
-            group: str = COLUMN_GROUPS.get(col_name, "Identity")
+            group: str = COLUMN_GROUPS.get(col_name, "Identity")  # type: ignore[reportUnknownArgumentType]
             grp_hex: str = GROUP_COLOURS.get(group, "FFFFFF")
             cell.font = data_font
             cell.alignment = data_align_c
