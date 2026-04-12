@@ -133,7 +133,7 @@ def format_workbook(path: str, n_rows: int) -> None:
             ws.column_dimensions[col_letter].width = col_widths[name]
         elif name in num_fmt_cols:
             ws.column_dimensions[col_letter].width = 18
-        elif "Err" in name or "Unc" in name:
+        elif "Err" in name or "Unc" in name:  # type: ignore[reportOperatorIssue]
             ws.column_dimensions[col_letter].width = 14
         else:
             ws.column_dimensions[col_letter].width = 16
