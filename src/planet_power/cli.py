@@ -200,10 +200,10 @@ def _create_split_files(
 
     for split in splits:
         base_path = os.path.join(DATA_DIR, f"{split['stem']}.{timestamp_filtered}")
-        df_split = df[split["cols"]]
+        df_split: pd.DataFrame = df[split["cols"]]
 
-        df_split.to_excel(f"{base_path}.xlsx", index=False, engine="openpyxl")
-        df_split.to_csv(f"{base_path}.csv", index=False, quoting=1, encoding="utf-8")
+        df_split.to_excel(f"{base_path}.xlsx", index=False, engine="openpyxl")  # type: ignore[reportUnknownMemberType]
+        df_split.to_csv(f"{base_path}.csv", index=False, quoting=1, encoding="utf-8")  # type: ignore[reportUnknownMemberType]
         format_workbook(f"{base_path}.xlsx", len(df_split))
 
         _save_scatter_png(
@@ -247,7 +247,7 @@ def _cleanup_data_files(keep: int) -> None:
     for f in all_files:
         match = timestamp_pattern.search(os.path.basename(f))
         if match:
-            timestamps.add(match.group(1))
+            timestamps.add(match.group(1))  # type: ignore[reportUnknownMemberType]
 
     timestamps: list[str] = sorted(timestamps, reverse=True)
     to_delete: set[str] = set(timestamps[keep:])
