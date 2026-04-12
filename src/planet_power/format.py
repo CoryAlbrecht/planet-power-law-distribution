@@ -1,6 +1,6 @@
 """Format and export the Excel workbook."""
 
-from typing import Any, cast
+from typing import cast
 
 import pandas as pd
 from openpyxl import load_workbook
@@ -104,16 +104,16 @@ def format_workbook(path: str, n_rows: int) -> None:
 
     for row in ws.iter_rows(min_row=2, max_row=n_rows + 1):
         for cell in row:
-            col_name = ws.cell(row=1, column=cell.column).value or ""
-            group = COLUMN_GROUPS.get(col_name, "Identity")
-            grp_hex = GROUP_COLOURS.get(group, "FFFFFF")
+            col_name: str = ws.cell(row=1, column=cell.column).value or ""  # type: ignore[reportUnknownMemberType]
+            group: str = COLUMN_GROUPS.get(col_name, "Identity")
+            grp_hex: str = GROUP_COLOURS.get(group, "FFFFFF")
             cell.font = data_font
             cell.alignment = data_align_c
             cell.border = thin_border
-            if cell.row % 2 == 0:
+            if cell.row % 2 == 0:  # type: ignore[reportOptionalOperand]
                 cell.fill = PatternFill("solid", start_color=grp_hex)
 
-        ws.row_dimensions[cell.row].height = 15
+        ws.row_dimensions[cell.row].height = 15  # type: ignore[reportPossiblyUnboundVariable]
 
     col_widths = {
         "Planet Name": 22,
@@ -128,9 +128,9 @@ def format_workbook(path: str, n_rows: int) -> None:
     num_fmt_cols = {"Mass (kg)", "Mass Err+ (kg)", "Mass Err- (kg)", "Radius (m)", "Radius Err+ (m)", "Radius Err- (m)"}
     for col_idx, cell in enumerate(ws[1], start=1):
         col_letter = get_column_letter(col_idx)
-        name = cell.value or ""
+        name: str = cell.value or ""  # type: ignore[reportUnknownMemberType]
         if name in col_widths:
-            ws.column_dimensions[col_letter].width = col_widths[name]
+            ws.column_dimensions[col_letter].width = col_widths[name]  # type: ignore[reportArgumentType]
         elif name in num_fmt_cols:
             ws.column_dimensions[col_letter].width = 18
         elif "Err" in name or "Unc" in name:  # type: ignore[reportOperatorIssue]
