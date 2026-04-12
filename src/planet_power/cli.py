@@ -243,14 +243,14 @@ def _cleanup_data_files(keep: int) -> None:
 
     timestamp_pattern = re.compile(r"\.([0-9]{10})(?:\.filter)?\.?")
 
-    timestamps: set[str] = set()
+    timestamp_set: set[str] = set()
     for f in all_files:
         match = timestamp_pattern.search(os.path.basename(f))
         if match:
-            timestamps.add(match.group(1))
+            timestamp_set.add(match.group(1))
 
-    timestamps: list[str] = sorted(timestamps, reverse=True)
-    to_delete: set[str] = set(timestamps[keep:])
+    sorted_timestamps: list[str] = sorted(timestamp_set, reverse=True)
+    to_delete: set[str] = set(sorted_timestamps[keep:])
 
     deleted_count = 0
     for ts in to_delete:
