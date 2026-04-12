@@ -106,24 +106,8 @@ def _save_scatter_png(
     yerr = [np.abs(df[y_err_minus_col].values), np.abs(df[y_err_plus_col].values)]
 
     # Plot points and error bars separately so each can carry its own colour.
-    ax.errorbar(  # type: ignore[reportUnknownMemberType]
-        x,
-        y,
-        xerr=xerr,
-        fmt="none",
-        ecolor=x_err_color,
-        capsize=2,
-        alpha=0.4,
-    )
-    ax.errorbar(  # type: ignore[reportUnknownMemberType]
-        x,
-        y,
-        yerr=yerr,
-        fmt="none",
-        ecolor=y_err_color,
-        capsize=2,
-        alpha=0.4,
-    )
+    ax.errorbar(x, y, xerr=xerr, fmt="none", ecolor=x_err_color, capsize=2, alpha=0.4)  # type: ignore[reportArgumentType]
+    ax.errorbar(x, y, yerr=yerr, fmt="none", ecolor=y_err_color, capsize=2, alpha=0.4)  # type: ignore[reportArgumentType]
     ax.scatter(x, y, color=point_color, s=5, alpha=0.4, zorder=3)  # type: ignore[reportUnknownMemberType]
 
     ax.set_xscale("log")
