@@ -1,7 +1,10 @@
 # Exoplanet Mass–Radius–Density–Gravity Dataset
 
-[![PyPI](https://img.shields.io/pypi/v/planet-power-law-distribution.svg)](https://pypi.org/project/planet-power-law-distribution/)
-[![Python](https://img.shields.io/pypi/pyversions/planet-power-law-distribution.svg)](https://pypi.org/project/planet-power-law-distribution/)
+[![Python](https://img.shields.io/pypi/pyversions/planet-power-law-distribution.svg)](https://www.python.org/)
+[![numpy](https://img.shields.io/pypi/v/numpy?label=numpy)](https://numpy.org/)
+[![pandas](https://img.shields.io/pypi/v/pandas?label=pandas)](https://pandas.pydata.org/)
+[![matplotlib](https://img.shields.io/pypi/v/matplotlib?label=matplotlib)](https://matplotlib.org/)
+[![openpyxl](https://img.shields.io/pypi/v/openpyxl?label=openpyxl)](https://openpyxl.readthedocs.io/)
 
 A Python script that queries the [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) for all confirmed exoplanets with known mass, radius, and density, computes surface gravity with propagated uncertainties, classifies each planet using the Durand-Manterola (2011) three-class scheme, and exports the result as a formatted Excel workbook.
 
