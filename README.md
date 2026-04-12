@@ -176,7 +176,7 @@ where M is in kg and g is in m/s². The **DM Grav. Residual** column gives the d
 
 ---
 
-## My Observations
+## My observations so far
 
 Three distinct groups of planets that can be seen in the unfiltered data
 
@@ -184,9 +184,9 @@ Three distinct groups of planets that can be seen in the unfiltered data
 - 1.2×10^25 <= B <= 8.1×10^26
 - C >= 8.1×10^26
 
-But the inflection points between te segments are oddly sharp. When a planet has a measured mass but no observed transit radius, the archive calculates the radius using the Chen & Kipping piecewise power law. That relation has hard breakpoints built into it — the archive's own documentation lists the exact boundaries at 2.04, 132, and 26,600 M_Earth, or 1.22×10^25 kg, 7.90×10^26 kg, and 1.589×10^29 kg.
+But the inflection points between the groups are oddly sharp. When a planet has a measured mass but no observed transit radius, the NASA Exoplanet Archive calculates the radius using the Chen & Kipping piecewise power law. That relation has hard breakpoints built into it — the Archive's own documentation lists the exact boundaries at 2.04, 132, and 26,600 M_Earth, or 1.22×10^25 kg, 7.90×10^26 kg, and 1.589×10^29 kg.
 
-The data that has the string `CALCULATED_VALUE` in the `*_reflink` can now be filtered out when creating the split files for each comaprison vs mass.
+The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can be filtered out when creating the split files for each comaprison vs mass. The three groups exist after such filtering but are much more fuzzy and closer to Durand-Manterola's originals ranges.
 
 ---
 
@@ -205,6 +205,8 @@ The data that has the string `CALCULATED_VALUE` in the `*_reflink` can now be fi
 **Separate calculated from measured densities.** Rerunning the analysis on the subset with directly measured densities would test whether the power law structure is robust to the archive's density imputation.
 
 **Add escape velocity.** Durand-Manterola's toy model (Figure 5) uses escape velocity to explain volatile retention in Class B. This is straightforward to compute from the same mass and radius data and would add physical context to the dataset.
+
+**Add more advanced data filtering.** Currently all rows where any or all of the fields `pl_bmassj_reflink`, `pl_bmasse_reflink`, `pl_radj_reflink`, `pl_rade_reflink`, and `pl_dens_reflink` containing the string `CALCULATED_VALUE` are removed from the data set before graphing the scatter plots. More research needs to be done to see if such indiscriminate filtering because they are all 'contaminated' by the Chen & Kipping piecewise segments, or if that issue is limited to the radius fields.
 
 ---
 
