@@ -4,8 +4,10 @@ import argparse
 import os
 import time
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.axes import Axes
 
 from .fetch import fetch_data
 from .compute import compute_surface_gravity, assign_dm_class
@@ -86,6 +88,7 @@ def _save_scatter_png(
 
     dpi = 100
     fig, ax = plt.subplots(figsize=(width_px / dpi, height_px / dpi), dpi=dpi)
+    assert isinstance(ax, Axes)
 
     x         = df[x_col].values
     y         = df[y_col].values
