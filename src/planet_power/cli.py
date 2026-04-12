@@ -235,11 +235,11 @@ def _cleanup_data_files(keep: int) -> None:
     ]
     extensions = [".xlsx", ".csv", ".png"]
 
-    all_files = []
+    all_files: list[str] = []
     for base in base_names:
         for ext in extensions:
-            all_files.extend(glob.glob(os.path.join(DATA_DIR, f"{base}.*{ext}")))
-            all_files.extend(glob.glob(os.path.join(DATA_DIR, f"{base}.*.filter{ext}")))
+            all_files.extend(glob.glob(os.path.join(DATA_DIR, f"{base}.*{ext}")))  # type: ignore[reportUnknownMemberType]
+            all_files.extend(glob.glob(os.path.join(DATA_DIR, f"{base}.*.filter{ext}")))  # type: ignore[reportUnknownMemberType]
 
     timestamp_pattern = re.compile(r"\.([0-9]{10})(?:\.filter)?\.?")
 
@@ -337,7 +337,7 @@ def main() -> None:
             os.path.basename(latest).replace("exoplanet_data.", "").replace(".xlsx", "")
         )
         print(f"Using existing exoplanet_data.{timestamp}.xlsx")
-        df = pd.read_excel(latest, sheet_name="Exoplanets")  # add a dtype parameter
+        df = pd.read_excel(latest, sheet_name="Exoplanets")  # type: ignore[reportUnknownMemberType]
         _create_split_files(df, timestamp, filter_rows=args.filter)
         return
 
@@ -358,7 +358,7 @@ def main() -> None:
         f"Writing {len(df):,} rows to {os.path.basename(base_path)}.xlsx and {csv_output} …",
         flush=True,
     )
-    df.to_excel(f"{base_path}.xlsx", index=False, engine="openpyxl")
+    df.to_excel(f"{base_path}.xlsx", index=False, engine="openpyxl")  # type: ignore[reportUnknownMemberType]
     df.to_csv(csv_output, index=False, quoting=1, encoding="utf-8")
 
     format_workbook(f"{base_path}.xlsx", len(df))
