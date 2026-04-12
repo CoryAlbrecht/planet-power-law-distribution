@@ -110,14 +110,14 @@ def _save_scatter_png(
     ax.errorbar(x, y, yerr=yerr, fmt="none", ecolor=y_err_color, capsize=2, alpha=0.4)  # type: ignore[reportArgumentType]
     ax.scatter(x, y, color=point_color, s=5, alpha=0.4, zorder=3)  # type: ignore[reportUnknownMemberType]
 
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_xlabel(x_col)
-    ax.set_ylabel(y_col)
-    ax.set_title(f"{x_col} vs {y_col}")
+    ax.set_xscale("log")  # type: ignore[reportUnknownMemberType]
+    ax.set_yscale("log")  # type: ignore[reportUnknownMemberType]
+    ax.set_xlabel(x_col)  # type: ignore[reportUnknownMemberType]
+    ax.set_ylabel(y_col)  # type: ignore[reportUnknownMemberType]
+    ax.set_title(f"{x_col} vs {y_col}")  # type: ignore[reportUnknownMemberType]
 
     plt.tight_layout()
-    plt.savefig(output_path)
+    plt.savefig(output_path)  # type: ignore[reportUnknownMemberType]
     plt.close()
 
 
@@ -129,7 +129,7 @@ def _create_split_files(
         timestamp_filtered = f"{timestamp}.filter"
         mask = (
             ~df.astype(str)
-            .apply(lambda col: col.str.contains("CALCULATED_VALUE", na=False))
+            .apply(lambda col: col.str.contains("CALCULATED_VALUE", na=False))  # type: ignore[reportUnknownArgumentType]
             .any(axis=1)
         )
         df = df[mask]
