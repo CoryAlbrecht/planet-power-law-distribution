@@ -86,22 +86,22 @@ The workbook contains two sheets.
 
 One row per confirmed exoplanet. Uses original NASA column names plus computed columns:
 
-| Group            | Columns                                                             |
-|------------------|---------------------------------------------------------------------|
-| Identity         | pl_name, hostname, pl_letter                               |
-| Discovery        | discoverymethod, disc_year, disc_facility                      |
-| Orbit            | pl_orbper, pl_orbsmax                                             |
-| Mass (Jupiter)   | pl_bmassj with ±errors                                                  |
-| Mass (Earth)     | pl_bmasse with ±errors                                                |
-| Computed Mass    | ppld_mass_kg with ±errors                                             |
-| Radius (Jupiter) | pl_radj with ±errors                                                  |
-| Radius (Earth)   | pl_rade with ±errors                                                |
-| Computed Radius | ppld_radius_m with ±errors                                            |
-| Density          | pl_dens with ±errors                                                  |
-| Surface Gravity  | ppld_surf_grav_ms2 and ppld_surf_grav_earth, with ±errors                        |
-| DM Class         | dm_class, dm_pred_g_ms2, dm_grav_residual           |
-| Stellar          | pl_eqt, pl_insol, st_teff, st_rad, st_mass |
-| System           | sy_dist, sy_snum, sy_pnum                     |
+| Group            | Columns                                                   |
+|------------------|-----------------------------------------------------------|
+| Identity         | pl_name, hostname, pl_letter                              |
+| Discovery        | discoverymethod, disc_year, disc_facility                 |
+| Orbit            | pl_orbper, pl_orbsmax                                     |
+| Mass (Jupiter)   | pl_bmassj with ±errors                                    |
+| Mass (Earth)     | pl_bmasse with ±errors                                    |
+| Computed Mass    | ppld_mass_kg with ±errors                                 |
+| Radius (Jupiter) | pl_radj with ±errors                                      |
+| Radius (Earth)   | pl_rade with ±errors                                      |
+| Computed Radius  | ppld_radius_m with ±errors                                |
+| Density          | pl_dens with ±errors                                      |
+| Surface Gravity  | ppld_surf_grav_ms2 and ppld_surf_grav_earth, with ±errors |
+| DM Class         | dm_class, dm_pred_g_ms2, dm_grav_residual                 |
+| Stellar          | pl_eqt, pl_insol, st_teff, st_rad, st_mass                |
+| System           | sy_dist, sy_snum, sy_pnum                                 |
 
 ### Notes sheet
 
@@ -109,12 +109,16 @@ Documents the TAP query used, physical constants, all computed column formulae, 
 
 ### CLI Options
 
-| Option                       | Description                                              |
-|------------------------------|----------------------------------------------------------|
-| `-f`, `--fetch`              | Fetch data from NASA Exoplanet Archive                   |
-| `-s`, `--split`              | Create split files for scatter plots                     |
-| `-F`, `--filter`             | Filter out rows with CALCULATED_VALUE in reflink columns |
-| `-C KEEP`, `--clean-up KEEP` | Delete old files, keep KEEP most recent sets             |
+| Option                                     | Description                                                             |
+|--------------------------------------------|-------------------------------------------------------------------------|
+| `-f`, `--fetch`                            | Fetch data from NASA Exoplanet Archive                                  |
+| `-s`, `--split`                            | Create split files for scatter plots                                    |
+| `-F COLUMN:REGEX`, `--filter COLUMN:REGEX` | Filter out rows where COLUMN matches REGEX (can be used multiple times) |
+| `-t TAG`, `--tag TAG`                      | Tag to append to split output filenames                                 |
+| `-S FILE`, `--script FILE`                 | File to read a list of of commands from                                 |
+| `-C KEEP`, `--clean-up KEEP`               | Delete old files, keep KEEP most recent sets                            |
+| `-o FILE`, `--output FILE`                 | Output Excel file (default: auto-generated timestamped name)            |
+| `--force-refresh`                          | Force refresh of raw data from NASA Exoplanet Archive                   |
 
 ---
 
