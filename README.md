@@ -242,7 +242,7 @@ The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can b
 
 ### Figure 3. Mass vs. Surface Gravity
 
-| Unfiltered, showing Chen & Kipping piecewise power law artefactaw                                      | Filtered                                                                                                   |
+| Unfiltered, showing Chen & Kipping piecewise power law artefact                                        | Filtered                                                                                                   |
 |--------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
 | 6,018 records                                                                                          | 1,654 records                                                                                              |
 | ![Mass vs. Surface Gravity, unfiltered](data/mass-vs-surface-gravity.20260412T230854.not_filtered.png) | ![Mass vs. Surface Gravity, filtered](data/mass-vs-surface-gravity.20260412T230854.caclulated_removed.png) |
