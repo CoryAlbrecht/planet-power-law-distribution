@@ -266,9 +266,9 @@ The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can b
 
 **Separate calculated from measured densities.** Rerunning the analysis on the subset with directly measured densities would test whether the power law structure is robust to the archive's density imputation.
 
-**Add escape velocity.** Durand-Manterola's toy model (Figure 5) uses escape velocity to explain volatile retention in Class B. This is straightforward to compute from the same mass and radius data and would add physical context to the dataset.
+**Add escape velocity.** Durand-Manterola's toy model [https://arxiv.org/abs/1111.3986]((Figure 5)) uses escape velocity to explain volatile retention in Class B. This is straightforward to compute from the same mass and radius data and would add physical context to the dataset.
 
-**Add more advanced data filtering.** Currently all rows where any or all of the fields `pl_bmassj_reflink`, `pl_bmasse_reflink`, `pl_radj_reflink`, `pl_rade_reflink`, and `pl_dens_reflink` containing the string `CALCULATED_VALUE` are removed from the data set before graphing the scatter plots. More research needs to be done to see if such indiscriminate filtering in necessary because they are all affected by the Chen & Kipping piecewise segments, or if that issue is limited to the radius fields.
+**Add more advanced data filtering.** Currently filtering is simplistic. If a row has a field that matches a filter from the command line, that row is discarded. More research needs to be done to see if this simple, indiscrimnate filtering is necessary due to Chen's & Kipping's piecewise power law speading to other columns, or if more sophistacted filtered (i.e. boolean logic) could increase the size of the comparison sets.
 
 ---
 
