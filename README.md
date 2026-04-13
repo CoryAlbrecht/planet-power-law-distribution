@@ -230,24 +230,24 @@ The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can b
 
 ### Figure 1. Mass vs. Radius
 
-| Unfiltered, showing Chen & Kipping piecewise power law artefact               | Filtered                                                                            |
-|-------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| 6,018 records                                                                 | 1,654 records                                                                       |
-| <img src="data/mass-vs-radius.20260412T230854.not_filtered.png" width="80%"/> | <img src="data/mass-vs-radius.20260412T230854.caclulated_removed.png" width="80%"/> |
+| Unfiltered, showing Chen & Kipping piecewise power law artefact   | Filtered                                                                 |
+|-------------------------------------------------------------------|--------------------------------------------------------------------------|
+| 6,018 records                                                     | 1,654 records                                                            |
+| <img src="data/mass-vs-radius.20260412T230854.not_filtered.png"/> | <img src="data/mass-vs-radius.20260412T230854.caclulated_removed.png" /> |
 
 ### Figure 2. Mass vs. Density
 
-| Unfiltered, showing the adulteration introduced by the Chen & Kipping piecewise power law | Filtered                                                                             |
-|-------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
-| 6,018 records                                                                             | 1,487 records                                                                        |
-| <img src="data/mass-vs-density.20260412T230854.not_filtered.png" width="80%"/>            | <img src="data/mass-vs-density.20260412T230854.caclulated_removed.png" width="80%"/> |
+| Unfiltered, showing Chen & Kipping piecewise power law artefact     | Filtered                                                                  |
+|---------------------------------------------------------------------|---------------------------------------------------------------------------|
+| 6,018 records                                                       | 1,487 records                                                             |
+| <img src="data/mass-vs-density.20260412T230854.not_filtered.png" /> | <img src="data/mass-vs-density.20260412T230854.caclulated_removed.png" /> |
 
 ### Figure 3. Mass vs. Surface Gravity
 
-| Unfiltered, showing the adulteration introduced by the Chen & Kipping piecewise power law | Filtered                                                                                     |
-|-------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
-| 6,018 records                                                                             | 1,654 records                                                                                |
-| <img src="data/mass-vs-surface-gravity.20260412T230854.not_filtered.png" width="80%"/>    | <img src="data/mass-vs-surface-gravity.20260412T230854.caclulated_removed.png" width="80%"/> |
+| Unfiltered, showing Chen & Kipping piecewise power law artefactaw           | Filtered                                                                          |
+|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| 6,018 records                                                               | 1,654 records                                                                     |
+| <img src="data/mass-vs-surface-gravity.20260412T230854.not_filtered.png" /> | <img src="data/mass-vs-surface-gravity.20260412T230854.caclulated_removed.png" /> |
 
 
 ---
