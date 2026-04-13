@@ -8,7 +8,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
-from .constants import GROUP_COLOURS, COLUMN_GROUPS, G, M_JUP_KG, R_JUP_M, G_EARTH
+from planet_power.constants import GROUP_COLOURS, COLUMN_GROUPS, G, M_JUP_KG, R_JUP_M, G_EARTH
 
 
 COLUMN_RENAME = {}

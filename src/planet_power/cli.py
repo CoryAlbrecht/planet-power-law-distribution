@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import time
+import glob as g
 from typing import Any, cast
 
 import matplotlib
@@ -17,9 +19,9 @@ import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
 
-from .fetch import fetch_data
-from .compute import compute_surface_gravity, assign_dm_class
-from .format import rename_columns, format_workbook
+from planet_power.fetch import fetch_data
+from planet_power.compute import compute_surface_gravity, assign_dm_class
+from planet_power.format import rename_columns, format_workbook
 
 DATA_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data"
@@ -30,6 +32,15 @@ def _make_timestamped_filename() -> str:
     """Generate timestamped filename like exoplanet_data.20260411T180234.xlsx"""
     ts = time.strftime("%Y%m%dT%H%M%S")
     return f"exoplanet_data.{ts}.xlsx"
+
+
+def _get_latest_datafile() -> list[str]:
+    existing = sorted(
+        g.glob(os.path.join(DATA_DIR, "exoplanet_data.*.xlsx")),
+        key=os.path.getmtime,
+        reverse=True,
+    )
+    return existing
 
 
 DEFAULT_OUTPUT = _make_timestamped_filename()
@@ -81,16 +92,7 @@ def _save_scatter_png(
     yep = pd.to_numeric(df[y_err_plus_col], errors="coerce")
     yem = pd.to_numeric(df[y_err_minus_col], errors="coerce")
 
-    valid = (
-        (x_vals > 0)
-        & (y_vals > 0)
-        & np.isfinite(x_vals)
-        & np.isfinite(y_vals)
-        & np.isfinite(xep)
-        & np.isfinite(xem)
-        & np.isfinite(yep)
-        & np.isfinite(yem)
-    )
+    valid = (x_vals > 0) & (y_vals > 0) & np.isfinite(x_vals) & np.isfinite(y_vals)
     df = df[valid]
     if len(df) == 0:
         print(f"\tNo valid data to plot for {x_col} vs {y_col}")
@@ -102,40 +104,70 @@ def _save_scatter_png(
 
     x = df[x_col].values
     y = df[y_col].values
-    xerr = [np.abs(df[x_err_minus_col].values), np.abs(df[x_err_plus_col].values)]
-    yerr = [np.abs(df[y_err_minus_col].values), np.abs(df[y_err_plus_col].values)]
+    # xerr = [np.abs(df[x_err_minus_col].values), np.abs(df[x_err_plus_col].values)]
+    # yerr = [np.abs(df[y_err_minus_col].values), np.abs(df[y_err_plus_col].values)]
+    xerr = [
+        np.abs(pd.to_numeric(df[x_err_minus_col], errors="coerce").fillna(0).values),
+        np.abs(pd.to_numeric(df[x_err_plus_col], errors="coerce").fillna(0).values),
+    ]
+    yerr = [
+        np.abs(pd.to_numeric(df[y_err_minus_col], errors="coerce").fillna(0).values),
+        np.abs(pd.to_numeric(df[y_err_plus_col], errors="coerce").fillna(0).values),
+    ]
 
     # Plot points and error bars separately so each can carry its own colour.
-    ax.errorbar(x, y, xerr=xerr, fmt="none", ecolor=x_err_color, capsize=2, alpha=0.4)  # type: ignore[reportArgumentType]
-    ax.errorbar(x, y, yerr=yerr, fmt="none", ecolor=y_err_color, capsize=2, alpha=0.4)  # type: ignore[reportArgumentType]
+    ax.errorbar(x, y, xerr=xerr, fmt="none", elinewidth=1.0, ecolor=x_err_color, capsize=2, alpha=0.4)  # type: ignore[reportArgumentType]
+    ax.errorbar(x, y, yerr=yerr, fmt="none", elinewidth=1.0, ecolor=y_err_color, capsize=2, alpha=0.4)  # type: ignore[reportArgumentType]
     ax.scatter(x, y, color=point_color, s=5, alpha=0.4, zorder=3)  # type: ignore[reportUnknownMemberType]
 
     ax.set_xscale("log")  # type: ignore[reportUnknownMemberType]
     ax.set_yscale("log")  # type: ignore[reportUnknownMemberType]
     ax.set_xlabel(x_col)  # type: ignore[reportUnknownMemberType]
     ax.set_ylabel(y_col)  # type: ignore[reportUnknownMemberType]
-    ax.set_title(f"{x_col} vs {y_col}")  # type: ignore[reportUnknownMemberType]
+    ax.set_title(f"{x_col} vs {y_col}, {len(x)} points")  # type: ignore[reportUnknownMemberType]
 
     plt.tight_layout()
     plt.savefig(output_path)  # type: ignore[reportUnknownMemberType]
     plt.close()
 
 
+def _validate_tag(tag: str) -> str:
+    if tag and not re.match(r"^[a-zA-Z0-9_\-:]+$", tag):
+        raise argparse.ArgumentTypeError(
+            f"Invalid tag '{tag}' - only alphanumeric, underscore, hyphen, colon allowed"
+        )
+    return tag
+
+
+def _apply_filter_rules(
+    df: pd.DataFrame, filter_rules: list[tuple[str, str]] | None = None
+) -> pd.DataFrame:
+    if filter_rules is None:
+        return df
+    active_rules: list[tuple[str, str]] = []
+    for col_name, pattern in filter_rules:
+        if col_name not in df.columns:
+            print(
+                f"  Warning: filter rule skipped — column '{col_name}' not in DataFrame"
+            )
+        else:
+            active_rules.append((col_name, pattern))
+    if not active_rules:
+        return df
+    mask = pd.Series([True] * len(df))
+    for col_name, pattern in active_rules:
+        matches = df[col_name].astype(str).str.contains(pattern, regex=True, na=False)
+        mask = mask & ~matches
+    return df[mask]
+
+
 def _create_split_files(
-    df: pd.DataFrame, timestamp: str, filter_rows: bool = False
+    df: pd.DataFrame,
+    timestamp: str,
+    filter_rules: list[tuple[str, str]] | None = None,
+    tag: str = "",
 ) -> None:
     """Create split files for mass-vs-radius, mass-vs-density, mass-vs-surface-gravity."""
-    if filter_rows:
-        timestamp_filtered = f"{timestamp}.filter"
-        mask = (
-            ~df.astype(str)
-            .apply(lambda col: col.str.contains("CALCULATED_VALUE", na=False))  # type: ignore[reportUnknownArgumentType]
-            .any(axis=1)
-        )
-        df = df[mask]
-        print(f"\tFiltered to {len(df):,} rows (removed CALCULATED_VALUE)")
-    else:
-        timestamp_filtered = timestamp
     splits: list[dict[str, Any]] = [
         {
             "stem": "mass-vs-radius",
@@ -145,17 +177,19 @@ def _create_split_files(
                 "ppld_mass_kg_err1",
                 "ppld_mass_kg_err2",
                 "pl_bmassj_reflink",
-                "ppld_rad_m",
-                "ppld_rad_m_err1",
-                "ppld_rad_m_err2",
+                "pl_bmasse_reflink",
+                "ppld_radius_m",
+                "ppld_radius_m_err1",
+                "ppld_radius_m_err2",
                 "pl_radj_reflink",
+                "pl_rade_reflink",
             ],
             "x_col": "ppld_mass_kg",
             "x_err_plus_col": "ppld_mass_kg_err1",
             "x_err_minus_col": "ppld_mass_kg_err2",
-            "y_col": "ppld_rad_m",
-            "y_err_plus_col": "ppld_rad_m_err1",
-            "y_err_minus_col": "ppld_rad_m_err2",
+            "y_col": "ppld_radius_m",
+            "y_err_plus_col": "ppld_radius_m_err1",
+            "y_err_minus_col": "ppld_radius_m_err2",
         },
         {
             "stem": "mass-vs-density",
@@ -165,6 +199,7 @@ def _create_split_files(
                 "ppld_mass_kg_err1",
                 "ppld_mass_kg_err2",
                 "pl_bmassj_reflink",
+                "pl_bmasse_reflink",
                 "pl_dens",
                 "pl_denserr1",
                 "pl_denserr2",
@@ -185,9 +220,12 @@ def _create_split_files(
                 "ppld_mass_kg_err1",
                 "ppld_mass_kg_err2",
                 "pl_bmassj_reflink",
+                "pl_bmasse_reflink",
                 "ppld_surf_grav_ms2",
                 "ppld_surf_grav_ms2_err1",
                 "ppld_surf_grav_ms2_err2",
+                "pl_radj_reflink",
+                "pl_rade_reflink",
             ],
             "x_col": "ppld_mass_kg",
             "x_err_plus_col": "ppld_mass_kg_err1",
@@ -199,15 +237,23 @@ def _create_split_files(
     ]
 
     for split in splits:
-        base_path = os.path.join(DATA_DIR, f"{split['stem']}.{timestamp_filtered}")
+        print()
         df_split = cast(pd.DataFrame, df[split["cols"]])
-
-        df_split.to_excel(f"{base_path}.xlsx", index=False, engine="openpyxl")  # type: ignore[reportUnknownMemberType]
-        df_split.to_csv(f"{base_path}.csv", index=False, quoting=1, encoding="utf-8")  # type: ignore[reportUnknownMemberType]
+        df_filtered = _apply_filter_rules(df=df_split, filter_rules=filter_rules)
+        if len(df_filtered) < len(df_split):
+            print(
+                f"Dataset {split['stem']} filtered from {len(df_split)} down to {len(df_filtered)} lines."
+            )
+        base_path = os.path.join(
+            DATA_DIR,
+            f"{split['stem']}.{timestamp}{f'.{tag}' if tag else ''}",
+        )
+        df_filtered.to_excel(f"{base_path}.xlsx", index=False, engine="openpyxl")  # type: ignore[reportUnknownMemberType]
+        df_filtered.to_csv(f"{base_path}.csv", index=False, quoting=1, encoding="utf-8")  # type: ignore[reportUnknownMemberType]
         format_workbook(f"{base_path}.xlsx", len(df_split))
 
         _save_scatter_png(
-            df=df_split,
+            df=df_filtered,
             output_path=f"{base_path}.png",
             x_col=split["x_col"],
             x_err_plus_col=split["x_err_plus_col"],
@@ -218,7 +264,7 @@ def _create_split_files(
         )
 
         print(
-            f"\nCreated {os.path.basename(base_path)}.xlsx, {os.path.basename(base_path)}.csv, {os.path.basename(base_path)}.png"
+            f"Created {os.path.basename(base_path)}.xlsx, {os.path.basename(base_path)}.csv, {os.path.basename(base_path)}.png"
         )
 
 
@@ -280,6 +326,13 @@ def main() -> None:
         help="Fetch data from NASA Exoplanet Archive and generate output files",
     )
     parser.add_argument(
+        "-S",
+        "--script",
+        type=str,
+        metavar="FILE",
+        help="Path to a text file containing commands to follow",
+    )
+    parser.add_argument(
         "-s",
         "--split",
         action="store_true",
@@ -288,8 +341,19 @@ def main() -> None:
     parser.add_argument(
         "-F",
         "--filter",
-        action="store_true",
-        help="Filter out rows with 'CALCULATED_VALUE' (use with --split only)",
+        nargs="+",
+        action="append",
+        default=[],
+        metavar="COLUMN:REGEX",
+        help="Filter rows where COLUMN matches REGEX. Can be used multiple times.",
+    )
+    parser.add_argument(
+        "-t",
+        "--tag",
+        type=_validate_tag,
+        default="",
+        metavar="TAG",
+        help="Tag to append to split output filenames (alphanumeric, underscore, hyphen, colon)",
     )
     parser.add_argument(
         "-C",
@@ -313,64 +377,61 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    # get the filter rules
+    filter_rules: list[tuple[str, str]] = []
+    flat_args = [item for sublist in args.filter for item in sublist]
+    for arg in flat_args:
+        if ":" not in arg:
+            print(f'String "{arg}" is not a valid filter string.')
+            continue
+        col, pattern = arg.split(":", 1)
+        filter_rules.append((col, pattern))
+
     if args.clean_up > 0:
         _cleanup_data_files(args.clean_up)
         return
 
-    if args.filter and not args.split:
-        parser.error("--filter / -F requires --split")
-
-    if args.split and not args.fetch:
-        import glob as g
-
-        existing = sorted(
-            g.glob(os.path.join(DATA_DIR, "exoplanet_data.*.xlsx")),
-            key=os.path.getmtime,
-            reverse=True,
+    if args.fetch:
+        df = fetch_data(force_refresh=args.force_refresh)
+        df = compute_surface_gravity(df)
+        df = assign_dm_class(df)
+        df = rename_columns(df)
+        timestamp = args.output.replace("exoplanet_data.", "").replace(".xlsx", "")
+        base_path = os.path.join(DATA_DIR, f"exoplanet_data.{timestamp}")
+        csv_output = f"{base_path}.csv"
+        print(
+            f"Writing {len(df):,} rows to {os.path.basename(base_path)}.xlsx and {os.path.basename(csv_output)} …",
+            flush=True,
+            end="",
         )
+        df.to_excel(f"{base_path}.xlsx", index=False, engine="openpyxl")  # type: ignore[reportUnknownMemberType]
+        df.to_csv(csv_output, index=False, quoting=1, encoding="utf-8")
+        format_workbook(f"{base_path}.xlsx", len(df))
+
+    if args.split:
+        existing = _get_latest_datafile()
         if not existing:
             parser.error(
                 "--split requires --fetch when no existing exoplanet_data file found"
             )
+            return
         latest = existing[0]
         timestamp = (
             os.path.basename(latest).replace("exoplanet_data.", "").replace(".xlsx", "")
         )
         print(f"Using existing exoplanet_data.{timestamp}.xlsx")
         df = pd.read_excel(latest, sheet_name="Exoplanets")  # type: ignore[reportUnknownMemberType]
-        _create_split_files(df, timestamp, filter_rows=args.filter)
+        _create_split_files(df, timestamp, filter_rules=filter_rules, tag=args.tag)
         return
 
-    if not args.fetch and not args.split:
+    if not args.fetch and not args.split and not args.script:
         parser.print_help()
         return
-
-    df = fetch_data(force_refresh=args.force_refresh)
-    df = compute_surface_gravity(df)
-    df = assign_dm_class(df)
-    df = rename_columns(df)
-
-    timestamp = args.output.replace("exoplanet_data.", "").replace(".xlsx", "")
-    base_path = os.path.join(DATA_DIR, f"exoplanet_data.{timestamp}")
-
-    csv_output = f"{base_path}.csv"
-    print(
-        f"Writing {len(df):,} rows to {os.path.basename(base_path)}.xlsx and {os.path.basename(csv_output)} …",
-        flush=True,
-        end="",
-    )
-    df.to_excel(f"{base_path}.xlsx", index=False, engine="openpyxl")  # type: ignore[reportUnknownMemberType]
-    df.to_csv(csv_output, index=False, quoting=1, encoding="utf-8")
-
-    format_workbook(f"{base_path}.xlsx", len(df))
 
     print(f"Done.")
     print(
         f"\nFiles saved: {os.path.basename(base_path)}.xlsx, {os.path.basename(csv_output)}"
     )
-
-    if args.split:
-        _create_split_files(df, timestamp, filter_rows=args.filter)
 
     print()
     print("Summary statistics:")

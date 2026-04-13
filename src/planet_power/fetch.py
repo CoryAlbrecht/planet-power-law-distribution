@@ -7,7 +7,7 @@ import requests
 import pandas as pd
 from io import StringIO
 
-from .constants import TAP_BASE, COLUMNS, WHERE
+from planet_power.constants import TAP_BASE, COLUMNS, WHERE
 
 DATA_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data"

@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from .constants import (
+from planet_power.constants import (
     G,
     M_JUP_KG,
     R_JUP_M,
