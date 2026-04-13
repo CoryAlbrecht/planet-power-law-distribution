@@ -20,6 +20,7 @@ A Python script that queries the [NASA Exoplanet Archive](https://exoplanetarchi
   - [Surface gravity](#surface-gravity)
   - [Durand-Manterola classification](#durand-manterola-classification)
 - [Caveats and known limitations](#caveats-and-known-limitations)
+- [My Observations](#my-observations)
 - [Future directions](#future-directions)
 - [Citation](#citation)
 
@@ -196,7 +197,7 @@ where M is in kg and g is in m/s². The **DM Grav. Residual** column gives the d
 
 ---
 
-## My observations so far
+## My Observations
 
 Three distinct groups of planets that can be seen in the unfiltered data
 
