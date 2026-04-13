@@ -46,34 +46,55 @@ irm https://raw.githubusercontent.com/CoryAlbrecht/planet-power-law-distribution
 
 ```bash
 # Clone repository
-git clone https://github.com/CoryAlbrecht/planet-power-law-distribution.git
-cd planet-power-law-distribution
+$ git clone https://github.com/CoryAlbrecht/planet-power-law-distribution.git
+$ cd planet-power-law-distribution
 
 # Create and activate virtual environment
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
+$ python -m venv .venv
+$ source .venv/bin/activate  # Linux/macOS
 # .\venv\Scripts\Activate.ps1  # Windows
 
 # Install package
-pip install -e .
+$ pip install -e .
 
-# Fetch data and generate output files
-planet-power -f
+# Fetch data and generate initial output files with some added calculated data
+$ planet-power -f
 
-# Optional: Create split files for plotting (with filtering)
-planet-power -f -s -F
+# Optional: Create split files for plotting with filtering out a calculated value in the Exoplanet Archive data
+planet-power -s -F pl_bmassj_reflink:CALCULATED_VALUE
+
+#Output files:
+$ ll data
+total 29M
+drwxr-xr-x 2 cory cory 4.0K 2026-04-13 00:37 ./
+drwxr-xr-x 9 cory cory 4.0K 2026-04-12 23:50 ../
+-rw-r--r-- 1 cory cory 5.8M 2026-04-12 23:09 exoplanet_data.20260412T230854.csv
+-rw-r--r-- 1 cory cory 2.1M 2026-04-12 23:09 exoplanet_data.20260412T230854.xlsx
+-rw-r--r-- 1 cory cory    0 2026-04-12 01:46 .gitkeep
+-rw-r--r-- 1 cory cory 765K 2026-04-12 23:40 mass-vs-density.20260412T230854.caclulated_removed.csv
+-rw-r--r-- 1 cory cory 283K 2026-04-12 23:41 mass-vs-density.20260412T230854.caclulated_removed.png
+-rw-r--r-- 1 cory cory 237K 2026-04-12 23:41 mass-vs-density.20260412T230854.caclulated_removed.xlsx
+-rw-r--r-- 1 cory cory 2.5M 2026-04-12 23:37 mass-vs-density.20260412T230854.not_filtered.csv
+-rw-r--r-- 1 cory cory 320K 2026-04-12 23:38 mass-vs-density.20260412T230854.not_filtered.png
+-rw-r--r-- 1 cory cory 420K 2026-04-12 23:38 mass-vs-density.20260412T230854.not_filtered.xlsx
+-rw-r--r-- 1 cory cory 1.1M 2026-04-12 23:40 mass-vs-radius.20260412T230854.caclulated_removed.csv
+-rw-r--r-- 1 cory cory 304K 2026-04-12 23:40 mass-vs-radius.20260412T230854.caclulated_removed.png
+-rw-r--r-- 1 cory cory 290K 2026-04-12 23:40 mass-vs-radius.20260412T230854.caclulated_removed.xlsx
+-rw-r--r-- 1 cory cory 3.4M 2026-04-12 23:36 mass-vs-radius.20260412T230854.not_filtered.csv
+-rw-r--r-- 1 cory cory 352K 2026-04-12 23:37 mass-vs-radius.20260412T230854.not_filtered.png
+-rw-r--r-- 1 cory cory 527K 2026-04-12 23:36 mass-vs-radius.20260412T230854.not_filtered.xlsx
+-rw-r--r-- 1 cory cory 1.1M 2026-04-12 23:41 mass-vs-surface-gravity.20260412T230854.caclulated_removed.csv
+-rw-r--r-- 1 cory cory 300K 2026-04-12 23:41 mass-vs-surface-gravity.20260412T230854.caclulated_removed.png
+-rw-r--r-- 1 cory cory 286K 2026-04-12 23:41 mass-vs-surface-gravity.20260412T230854.caclulated_removed.xlsx
+-rw-r--r-- 1 cory cory 3.4M 2026-04-12 23:39 mass-vs-surface-gravity.20260412T230854.not_filtered.csv
+-rw-r--r-- 1 cory cory 364K 2026-04-12 23:39 mass-vs-surface-gravity.20260412T230854.not_filtered.png
+-rw-r--r-- 1 cory cory 520K 2026-04-12 23:39 mass-vs-surface-gravity.20260412T230854.not_filtered.xlsx
+-rw-r--r-- 1 cory cory 4.8M 2026-04-12 23:08 raw-data.csv
+# New base data files are timestamped on each run so as to not overwrite
 
 # Clean up old files, keep only 1 most recent set
 planet-power -C 1
 ```
-
-Output files: `exoplanet_data.xlsx`, `exoplanet_data.csv`
-
-With `-s` also creates scatter plots with:
-
-- `mass-vs-radius.xlsx/.csv/.png` - pl_name, ppld_mass_kg, ppld_radius_m
-- `mass-vs-density.xlsx/.csv/.png` - pl_name, ppld_mass_kg, pl_dens
-- `mass-vs-surface-gravity.xlsx/.csv/.png` - pl_name, ppld_mass_kg, ppld_surf_grav_ms2
 
 No API key is required. The script queries NASA's public TAP service directly.
 
@@ -116,7 +137,7 @@ Documents the TAP query used, physical constants, all computed column formulae, 
 | `-s`, `--split`                            | Create split files for scatter plots                                    |
 | `-F COLUMN:REGEX`, `--filter COLUMN:REGEX` | Filter out rows where COLUMN matches REGEX (can be used multiple times) |
 | `-t TAG`, `--tag TAG`                      | Tag to append to split output filenames                                 |
-| `-S FILE`, `--script FILE`                 | File to read a list of of commands from                                 |
+| `-S FILE`, `--script FILE`                 | File to read a list of commands from                                    |
 | `-C KEEP`, `--clean-up KEEP`               | Delete old files, keep KEEP most recent sets                            |
 | `-o FILE`, `--output FILE`                 | Output Excel file (default: auto-generated timestamped name)            |
 | `--force-refresh`                          | Force refresh of raw data from NASA Exoplanet Archive                   |
@@ -149,11 +170,8 @@ where:
 - `M_Jup = 1.89813 × 10²⁷ kg`
 - `R_Jup = 7.14920 × 10⁷ m`
 
-Uncertainty is propagated assuming independent mass and radius errors, using symmetric (averaged) uncertainties:
+Uncertainty is propagated from the retreved data assuming independent mass and radius errors, using asymmetric uncertainties direct from the data.
 
-```math
-σ_g / g = sqrt( (σ_M/M)² + (2·σ_R/R)² )
-```
 
 Results are reported in both m/s² and Earth gravities (g_Earth = 9.80665 m/s²).
 
@@ -207,7 +225,7 @@ Three distinct groups of planets that can be seen in the unfiltered data
 
 But the inflection points between the groups are oddly sharp. When a planet has a measured mass but no observed transit radius, the NASA Exoplanet Archive calculates the radius using the Chen & Kipping piecewise power law. That relation has hard breakpoints built into it — the Archive's own documentation lists the exact boundaries at 2.04, 132, and 26,600 M_Earth, or 1.22×10^25 kg, 7.90×10^26 kg, and 1.589×10^29 kg.
 
-The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can be filtered out when creating the split files for each comparison vs mass. The three groups exist after such filtering but are much more fuzzy and closer to Durand-Manterola's originals ranges. Closer analyss needs to be done to see if Durand-Materola's power law curves re still accurate with the expanded dataset, or if the need to be tweaked.
+The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can be filtered out when creating the split files for each comparison vs mass. The three groups exist after such filtering but are much more fuzzy and closer to Durand-Manterola's originals ranges. Closer analysis needs to be done to see if Durand-Manterola's power law curves are still accurate with the expanded dataset, or if they need to be tweaked.
 
 
 ### Figure 1. Mass vs. Radius
@@ -224,7 +242,7 @@ The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can b
 | 6,018 records                                                                             | 1,487 records                                                                        |
 | <img src="data/mass-vs-density.20260412T230854.not_filtered.png" width="80%"/>            | <img src="data/mass-vs-density.20260412T230854.caclulated_removed.png" width="80%"/> |
 
-### Figure 1. Mass vs. Surface Gravity
+### Figure 3. Mass vs. Surface Gravity
 
 | Unfiltered, showing the adulteration introduced by the Chen & Kipping piecewise power law | Filtered                                                                                     |
 |-------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
