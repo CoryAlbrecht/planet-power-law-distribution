@@ -206,7 +206,30 @@ Three distinct groups of planets that can be seen in the unfiltered data
 
 But the inflection points between the groups are oddly sharp. When a planet has a measured mass but no observed transit radius, the NASA Exoplanet Archive calculates the radius using the Chen & Kipping piecewise power law. That relation has hard breakpoints built into it — the Archive's own documentation lists the exact boundaries at 2.04, 132, and 26,600 M_Earth, or 1.22×10^25 kg, 7.90×10^26 kg, and 1.589×10^29 kg.
 
-The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can be filtered out when creating the split files for each comparison vs mass. The three groups exist after such filtering but are much more fuzzy and closer to Durand-Manterola's originals ranges.
+The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can be filtered out when creating the split files for each comparison vs mass. The three groups exist after such filtering but are much more fuzzy and closer to Durand-Manterola's originals ranges. Closer analyss needs to be done to see if Durand-Materola's power law curves re still accurate with the expanded dataset, or if the need to be tweaked.
+
+
+### Figure 1. Mass vs. Radius
+
+| Unfiltered, showing Chen & Kipping piecewise power law artefact               | Filtered                                                                            |
+|-------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| 6,018 records                                                                 | 1,654 records                                                                       |
+| <img src="data/mass-vs-radius.20260412T230854.not_filtered.png" width="80%"/> | <img src="data/mass-vs-radius.20260412T230854.caclulated_removed.png" width="80%"/> |
+
+### Figure 2. Mass vs. Density
+
+| Unfiltered, showing the adulteration introduced by the Chen & Kipping piecewise power law | Filtered                                                                             |
+|-------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| 6,018 records                                                                             | 1,487 records                                                                        |
+| <img src="data/mass-vs-density.20260412T230854.not_filtered.png" width="80%"/>            | <img src="data/mass-vs-density.20260412T230854.caclulated_removed.png" width="80%"/> |
+
+### Figure 1. Mass vs. Surface Gravity
+
+| Unfiltered, showing the adulteration introduced by the Chen & Kipping piecewise power law | Filtered                                                                                     |
+|-------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
+| 6,018 records                                                                             | 1,654 records                                                                                |
+| <img src="data/mass-vs-surface-gravity.20260412T230854.not_filtered.png" width="80%"/>    | <img src="data/mass-vs-surface-gravity.20260412T230854.caclulated_removed.png" width="80%"/> |
+
 
 ---
 
