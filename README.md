@@ -2,12 +2,12 @@
 
 A Python script that queries the [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) for all confirmed exoplanets with known mass, radius, and density, computes surface gravity with propagated uncertainties, classifies each planet using the Durand-Manterola (2011) three-class scheme, and exports the result as a formatted Excel workbook.
 
-#### Dependencies
+## Dependencies
+
 [![numpy](https://img.shields.io/pypi/v/numpy?label=numpy)](https://numpy.org/)
 [![pandas](https://img.shields.io/pypi/v/pandas?label=pandas)](https://pandas.pydata.org/)
 [![matplotlib](https://img.shields.io/pypi/v/matplotlib?label=matplotlib)](https://matplotlib.org/)
 [![openpyxl](https://img.shields.io/pypi/v/openpyxl?label=openpyxl)](https://openpyxl.readthedocs.io/)
-
 
 ---
 
@@ -172,7 +172,6 @@ where:
 
 Uncertainty is propagated from the retreved data assuming independent mass and radius errors, using asymmetric uncertainties direct from the data.
 
-
 Results are reported in both m/s² and Earth gravities (g_Earth = 9.80665 m/s²).
 
 ### Durand-Manterola classification
@@ -227,28 +226,26 @@ But the inflection points between the groups are oddly sharp. When a planet has 
 
 The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can be filtered out when creating the split files for each comparison vs mass. The three groups exist after such filtering but are much more fuzzy and closer to Durand-Manterola's originals ranges. Closer analysis needs to be done to see if Durand-Manterola's power law curves are still accurate with the expanded dataset, or if they need to be tweaked.
 
-
 ### Figure 1. Mass vs. Radius
 
-| Unfiltered, showing Chen & Kipping piecewise power law artefact   | Filtered                                                                 |
-|-------------------------------------------------------------------|--------------------------------------------------------------------------|
-| 6,018 records                                                     | 1,654 records                                                            |
-| <img src="data/mass-vs-radius.20260412T230854.not_filtered.png"/> | <img src="data/mass-vs-radius.20260412T230854.caclulated_removed.png" /> |
+| Unfiltered, showing Chen & Kipping piecewise power law artefact                      | Filtered                                                                                 |
+|--------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| 6,018 records                                                                        | 1,654 records                                                                            |
+| ![Mass vs. Radius, unfiltered](data/mass-vs-radius.20260412T230854.not_filtered.png) | ![Mass vs. Radius, filtered](data/mass-vs-radius.20260412T230854.caclulated_removed.png) |
 
 ### Figure 2. Mass vs. Density
 
-| Unfiltered, showing Chen & Kipping piecewise power law artefact     | Filtered                                                                  |
-|---------------------------------------------------------------------|---------------------------------------------------------------------------|
-| 6,018 records                                                       | 1,487 records                                                             |
-| <img src="data/mass-vs-density.20260412T230854.not_filtered.png" /> | <img src="data/mass-vs-density.20260412T230854.caclulated_removed.png" /> |
+| Unfiltered, showing Chen & Kipping piecewise power law artefact                        | Filtered                                                                                   |
+|----------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| 6,018 records                                                                          | 1,487 records                                                                              |
+| ![Mass vs. Density, unfiltered](data/mass-vs-density.20260412T230854.not_filtered.png) | ![Mass vs. Density, filtered](data/mass-vs-density.20260412T230854.caclulated_removed.png) |
 
 ### Figure 3. Mass vs. Surface Gravity
 
-| Unfiltered, showing Chen & Kipping piecewise power law artefactaw           | Filtered                                                                          |
-|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
-| 6,018 records                                                               | 1,654 records                                                                     |
-| <img src="data/mass-vs-surface-gravity.20260412T230854.not_filtered.png" /> | <img src="data/mass-vs-surface-gravity.20260412T230854.caclulated_removed.png" /> |
-
+| Unfiltered, showing Chen & Kipping piecewise power law artefactaw                                      | Filtered                                                                                                   |
+|--------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| 6,018 records                                                                                          | 1,654 records                                                                                              |
+| ![Mass vs. Surface Gravity, unfiltered](data/mass-vs-surface-gravity.20260412T230854.not_filtered.png) | ![Mass vs. Surface Gravity, filtered](data/mass-vs-surface-gravity.20260412T230854.caclulated_removed.png) |
 
 ---
 
