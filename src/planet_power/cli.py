@@ -6,6 +6,7 @@ import argparse
 import glob as g
 import os
 import re
+from importlib.metadata import version
 
 import pandas as pd
 
@@ -36,6 +37,10 @@ def _validate_tag(tag: str) -> str:
 
 def main() -> None:
     """Main entry point for the CLI."""
+    print(
+        f"planet-power v{version("planet-power-law-distribution")} - Investigating classification of exoplanets"
+    )
+    print()
     parser = argparse.ArgumentParser(
         description="Fetch exoplanet data from NASA Exoplanet Archive and compute surface gravity."
     )
