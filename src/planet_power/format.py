@@ -2,21 +2,19 @@
 
 from typing import cast
 
-import pandas as pd
 from openpyxl import load_workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
-from planet_power.constants import GROUP_COLOURS, COLUMN_GROUPS, G, M_JUP_KG, R_JUP_M, G_EARTH
-
-
-COLUMN_RENAME = {}
-
-
-def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Give columns human-readable names."""
-    return df.rename(columns=COLUMN_RENAME)
+from planet_power.constants import (
+    COLUMN_GROUPS,
+    G_EARTH,
+    GROUP_COLOURS,
+    M_JUP_KG,
+    R_JUP_M,
+    G,
+)
 
 
 def format_workbook(path: str, n_rows: int) -> None:
@@ -38,8 +36,8 @@ def format_workbook(path: str, n_rows: int) -> None:
     ws.row_dimensions[1].height = 48
     for col_idx, cell in enumerate(ws[1], start=1):
         col_name: str = cell.value or ""  # type: ignore[reportUnknownVariableType]
-        group: str = COLUMN_GROUPS.get(col_name, "Identity")
-        grp_hex: str = GROUP_COLOURS.get(group, "CCCCCC")
+        group: str = COLUMN_GROUPS.get(col_name, "Unknown")
+        grp_hex: str = GROUP_COLOURS.get(group, "E0E0E0")
         r = int(grp_hex[0:2], 16)
         g = int(grp_hex[2:4], 16)
         b = int(grp_hex[4:6], 16)
@@ -52,7 +50,7 @@ def format_workbook(path: str, n_rows: int) -> None:
     for row in ws.iter_rows(min_row=2, max_row=n_rows + 1):
         for cell in row:
             col_name: str = ws.cell(row=1, column=cell.column).value or ""  # type: ignore[reportUnknownMemberType]
-            group: str = COLUMN_GROUPS.get(col_name, "Identity")  # type: ignore[reportUnknownArgumentType]
+            group: str = COLUMN_GROUPS.get(col_name, "Unknown")  # type: ignore[reportUnknownArgumentType]
             grp_hex: str = GROUP_COLOURS.get(group, "FFFFFF")
             cell.font = data_font
             cell.alignment = data_align_c

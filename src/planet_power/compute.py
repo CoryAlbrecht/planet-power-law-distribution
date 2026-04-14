@@ -1,15 +1,18 @@
 """Compute surface gravity and assign Durand-Manterola classes."""
 
+from typing import cast
+
+import numpy as np
 import pandas as pd
 
 from planet_power.constants import (
-    G,
-    M_JUP_KG,
-    R_JUP_M,
-    G_EARTH,
     DM_AB_KG,
     DM_BC_KG,
     DM_GRAVITY,
+    G_EARTH,
+    M_JUP_KG,
+    R_JUP_M,
+    G,
 )
 
 
@@ -53,31 +56,52 @@ def compute_surface_gravity(df: pd.DataFrame) -> pd.DataFrame:
 
 def assign_dm_class(df: pd.DataFrame) -> pd.DataFrame:
     """Assign Durand-Manterola (2011) planet class based on mass in kg."""
-    M_kg = df["pl_bmassj"] * M_JUP_KG
+    M_kg: pd.Series = df["pl_bmassj"] * M_JUP_KG
+    M_kg_null: pd.Series = df["pl_bmassj"].isna()
 
-    def classify(m: float) -> str | None:
-        if pd.isna(m):
-            return None
-        if m < DM_AB_KG:
-            return "A"
-        if m < DM_BC_KG:
-            return "B"
-        return "C"
+    dm_class_arr: pd.Series = pd.cut(
+        M_kg,
+        bins=[-np.inf, DM_AB_KG, DM_BC_KG, np.inf],
+        labels=["A", "B", "C"],
+        right=False,
+    )
+    dm_class_arr = dm_class_arr.astype(object)
+    dm_class_arr = dm_class_arr.where(~M_kg_null, None)
+    df["dm_class"] = dm_class_arr
 
-    df["dm_class"] = M_kg.apply(classify)
+    coeff_a, exp_a = DM_GRAVITY["A"]
+    coeff_b, exp_b = DM_GRAVITY["B"]
+    coeff_c, exp_c = DM_GRAVITY["C"]
 
-    def predicted_g(row: pd.Series) -> float | None:
-        cls = row["dm_class"]
-        m = row["pl_bmassj"] * M_JUP_KG
-        if cls is None or pd.isna(m):
-            return None
-        coeff, exp = DM_GRAVITY[cls]
-        return round(coeff * (m**exp), 4)
+    pred_g_a: pd.Series = coeff_a * (M_kg**exp_a)
+    pred_g_b: pd.Series = coeff_b * (M_kg**exp_b)
+    pred_g_c: pd.Series = coeff_c * (M_kg**exp_c)
 
-    df["dm_pred_g_ms2"] = df.apply(predicted_g, axis=1)
-    df["dm_pred_g_earth"] = (df["dm_pred_g_ms2"] / G_EARTH).round(4)
-    df["dm_grav_residual"] = (df["ppld_surf_grav_earth"] - df["dm_pred_g_earth"]).round(
-        4
+    pred_g: np.ndarray = np.select(
+        [df["dm_class"] == "A", df["dm_class"] == "B", df["dm_class"] == "C"],
+        [pred_g_a, pred_g_b, pred_g_c],
+        default=np.nan,
+    )
+    pred_g = np.where(M_kg_null, np.nan, pred_g)
+
+    pred_g_rounded: np.ndarray = np.round(pred_g, 4)
+    df["dm_pred_g_ms2"] = pd.Series(
+        data=np.where(np.isnan(pred_g_rounded), None, pred_g_rounded),  # type: ignore[call-overload]
+        dtype=object,
+    )
+
+    pred_g_earth_rounded: np.ndarray = np.round(pred_g_rounded / G_EARTH, 4)
+    df["dm_pred_g_earth"] = pd.Series(
+        data=np.where(np.isnan(pred_g_earth_rounded), None, pred_g_earth_rounded),  # type: ignore[call-overload]
+        dtype=object,
+    )
+
+    surf_grav_earth: np.ndarray = cast(np.ndarray, df["ppld_surf_grav_earth"].values)
+    residual: np.ndarray = surf_grav_earth - pred_g_rounded / G_EARTH
+    residual_rounded: np.ndarray = np.round(residual, 4)
+    df["dm_grav_residual"] = pd.Series(
+        data=np.where(np.isnan(residual_rounded), None, residual_rounded),  # type: ignore[call-overload]
+        dtype=object,
     )
 
     return df

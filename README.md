@@ -57,43 +57,24 @@ $ source .venv/bin/activate  # Linux/macOS
 # Install package
 $ pip install -e .
 
-# Fetch data and generate initial output files with some added calculated data
-$ planet-power -f
+# Retrieve data from te NASA Exoplanet Archive database and generate initial output files with some added calculated data
+# If the data file is already there and less than a week old, it won't retrieve it again
+$ planet-power -r
+$ planet-power --retrieve
 
-# Optional: Create split files for plotting with filtering out a calculated value in the Exoplanet Archive data
-planet-power -s -F pl_bmassj_reflink:CALCULATED_VALUE
+# Force a data refresh even if the file is less than a week old
+$ planet-power -r -R
+$ planet-power -r --refresh
 
-#Output files:
-$ ll data
-total 29M
-drwxr-xr-x 2 cory cory 4.0K 2026-04-13 00:37 ./
-drwxr-xr-x 9 cory cory 4.0K 2026-04-12 23:50 ../
--rw-r--r-- 1 cory cory 5.8M 2026-04-12 23:09 exoplanet_data.20260412T230854.csv
--rw-r--r-- 1 cory cory 2.1M 2026-04-12 23:09 exoplanet_data.20260412T230854.xlsx
--rw-r--r-- 1 cory cory    0 2026-04-12 01:46 .gitkeep
--rw-r--r-- 1 cory cory 765K 2026-04-12 23:40 mass-vs-density.20260412T230854.caclulated_removed.csv
--rw-r--r-- 1 cory cory 283K 2026-04-12 23:41 mass-vs-density.20260412T230854.caclulated_removed.png
--rw-r--r-- 1 cory cory 237K 2026-04-12 23:41 mass-vs-density.20260412T230854.caclulated_removed.xlsx
--rw-r--r-- 1 cory cory 2.5M 2026-04-12 23:37 mass-vs-density.20260412T230854.not_filtered.csv
--rw-r--r-- 1 cory cory 320K 2026-04-12 23:38 mass-vs-density.20260412T230854.not_filtered.png
--rw-r--r-- 1 cory cory 420K 2026-04-12 23:38 mass-vs-density.20260412T230854.not_filtered.xlsx
--rw-r--r-- 1 cory cory 1.1M 2026-04-12 23:40 mass-vs-radius.20260412T230854.caclulated_removed.csv
--rw-r--r-- 1 cory cory 304K 2026-04-12 23:40 mass-vs-radius.20260412T230854.caclulated_removed.png
--rw-r--r-- 1 cory cory 290K 2026-04-12 23:40 mass-vs-radius.20260412T230854.caclulated_removed.xlsx
--rw-r--r-- 1 cory cory 3.4M 2026-04-12 23:36 mass-vs-radius.20260412T230854.not_filtered.csv
--rw-r--r-- 1 cory cory 352K 2026-04-12 23:37 mass-vs-radius.20260412T230854.not_filtered.png
--rw-r--r-- 1 cory cory 527K 2026-04-12 23:36 mass-vs-radius.20260412T230854.not_filtered.xlsx
--rw-r--r-- 1 cory cory 1.1M 2026-04-12 23:41 mass-vs-surface-gravity.20260412T230854.caclulated_removed.csv
--rw-r--r-- 1 cory cory 300K 2026-04-12 23:41 mass-vs-surface-gravity.20260412T230854.caclulated_removed.png
--rw-r--r-- 1 cory cory 286K 2026-04-12 23:41 mass-vs-surface-gravity.20260412T230854.caclulated_removed.xlsx
--rw-r--r-- 1 cory cory 3.4M 2026-04-12 23:39 mass-vs-surface-gravity.20260412T230854.not_filtered.csv
--rw-r--r-- 1 cory cory 364K 2026-04-12 23:39 mass-vs-surface-gravity.20260412T230854.not_filtered.png
--rw-r--r-- 1 cory cory 520K 2026-04-12 23:39 mass-vs-surface-gravity.20260412T230854.not_filtered.xlsx
--rw-r--r-- 1 cory cory 4.8M 2026-04-12 23:08 raw-data.csv
-# New base data files are timestamped on each run so as to not overwrite
+# Create split files for plotting with no filtering
+planet-power --split
 
-# Clean up old files, keep only 1 most recent set
-planet-power -C 1
+# Create split files for plotting with filtering out calculated values from one column
+planet-power -s --filter pl_bmassj_reflink:CALCULATED_VALUE
+
+# Create split files for plotting with filtering out calculated values from two column
+planet-power -s -f pl_bmassj_reflink:CALCULATED_VALUE -f pl_dens_reflink:CALCULATED_VALUE
+
 ```
 
 No API key is required. The script queries NASA's public TAP service directly.
@@ -228,30 +209,30 @@ The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can b
 
 ### Figure 1. Mass vs. Radius
 
-| Unfiltered, showing Chen & Kipping piecewise power law artefact                      | Filtered                                                                                 |
-|--------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
-| 6,018 records                                                                        | 1,654 records                                                                            |
-| ![Mass vs. Radius, unfiltered](data/mass-vs-radius.20260412T230854.not_filtered.png) | ![Mass vs. Radius, filtered](data/mass-vs-radius.20260412T230854.caclulated_removed.png) |
+| Unfiltered, showing Chen & Kipping piecewise power law artefact              | Filtered                                                               |
+|------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| 6,018 records                                                                | 1,654 records                                                          |
+| ![Mass vs. Radius, unfiltered](data/mass-vs-radius.example_not_filtered.png) | ![Mass vs. Radius, filtered](data/mass-vs-radius.example_filtered.png) |
 
 ### Figure 2. Mass vs. Density
 
-| Unfiltered, showing Chen & Kipping piecewise power law artefact                        | Filtered                                                                                   |
-|----------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
-| 6,018 records                                                                          | 1,487 records                                                                              |
-| ![Mass vs. Density, unfiltered](data/mass-vs-density.20260412T230854.not_filtered.png) | ![Mass vs. Density, filtered](data/mass-vs-density.20260412T230854.caclulated_removed.png) |
+| Unfiltered, showing Chen & Kipping piecewise power law artefact                | Filtered                                                                 |
+|--------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| 6,018 records                                                                  | 1,487 records                                                            |
+| ![Mass vs. Density, unfiltered](data/mass-vs-density.example_not_filtered.png) | ![Mass vs. Density, filtered](data/mass-vs-density.example_filtered.png) |
 
 ### Figure 3. Mass vs. Surface Gravity
 
-| Unfiltered, showing Chen & Kipping piecewise power law artefact                                        | Filtered                                                                                                   |
-|--------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
-| 6,018 records                                                                                          | 1,654 records                                                                                              |
-| ![Mass vs. Surface Gravity, unfiltered](data/mass-vs-surface-gravity.20260412T230854.not_filtered.png) | ![Mass vs. Surface Gravity, filtered](data/mass-vs-surface-gravity.20260412T230854.caclulated_removed.png) |
+| Unfiltered, showing Chen & Kipping piecewise power law artefact                                | Filtered                                                                                 |
+|------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| 6,018 records                                                                                  | 1,654 records                                                                            |
+| ![Mass vs. Surface Gravity, unfiltered](data/mass-vs-surface-gravity.example_not_filtered.png) | ![Mass vs. Surface Gravity, filtered](data/mass-vs-surface-gravity.example_filtered.png) |
 
 ---
 
-## Future directions
+## Future directions and things to consider
 
-**Refit the power laws on the modern dataset.** With thousands of planets now available, the Durand-Manterola exponents could be refitted and compared to the 2011 values. This would test whether the classification scheme holds at scale.
+**Refit the power laws on the modern dataset.** With thousands of planets now available, the Durand-Manterola exponents could be refitted and compared to the 2011 values. This would test whether the classification scheme holds at scale. **Segemented Regression**, the **Chow test**, and **Recursive Residuals**
 
 **Use better fitting methods.** Ordinary least squares in log space assumes symmetric, equal-weight Gaussian errors on logged quantities — a poor match to real exoplanet data. More appropriate methods include:
 
