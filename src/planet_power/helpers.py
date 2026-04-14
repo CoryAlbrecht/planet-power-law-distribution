@@ -3,7 +3,29 @@
 import os
 import re
 
-from planet_power.constants import ALL_PSCOMPPARS_COLUMNS
+from rich import box
+from rich.console import Console
+from rich.table import Table
+
+from planet_power.constants import ALL_PS_COLUMNS, ALL_PSCOMPPARS_COLUMNS
+
+
+def list_available_columns() -> None:
+    """Print a two-column table of PS and PSCompPars column names using rich."""
+    console = Console()
+    table = Table(
+        title="Available NASA Exoplanet Archive Columns",
+        title_style="regular",
+        header_style="dim",
+        box=box.SQUARE,
+    )
+    table.add_column("Table PS", no_wrap=False)
+    table.add_column("Table PSCompPars", no_wrap=False)
+    ps_list = ", ".join(ALL_PS_COLUMNS)
+    pscomppars_list = ", ".join(ALL_PSCOMPPARS_COLUMNS)
+    row = [ps_list, pscomppars_list]
+    table.add_row(*row)
+    console.print(table)
 
 
 def get_column_list(patterns: list[str]) -> list[str]:

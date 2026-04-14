@@ -12,8 +12,9 @@ import pandas as pd
 from planet_power.compute import assign_dm_class, compute_surface_gravity
 from planet_power.constants import DATA_DIR
 from planet_power.extraction import create_split_files
-from planet_power.retrieve import retrieve_exoplanet_data
 from planet_power.format import format_workbook
+from planet_power.helpers import list_available_columns
+from planet_power.retrieve import retrieve_exoplanet_data
 
 
 def _get_latest_datafile() -> list[str]:
@@ -67,13 +68,19 @@ def main() -> None:
         help="Filter rows where COLUMN matches REGEX. Can be used multiple times.",
     )
     parser.add_argument(
-        "-C",
+        "-c",
         "--column",
         nargs="+",
         action="append",
         default=[],
         metavar="COLUMN|REGEX",
         help="Exact name of a column ore a regular expression to match multiple. Can be used multiple times.",
+    )
+
+    parser.add_argument(
+        "--help-columns",
+        action="store_true",
+        help="List all the available columns",
     )
 
     parser.add_argument(
@@ -103,6 +110,12 @@ def main() -> None:
 
     df = None
 
+    if args.help_columns:
+        print()
+        list_available_columns()
+        print()
+        return
+
     # get the filter rules
     filter_rules: list[tuple[str, str]] = []
     flat_args = [item for sublist in args.filter for item in sublist]
@@ -118,7 +131,9 @@ def main() -> None:
         return
 
     if args.retrieve:
-        df = retrieve_exoplanet_data(force_refresh=args.refresh)
+        df = retrieve_exoplanet_data(
+            force_refresh=args.refresh, pscomppars=args.pscomppars
+        )
         df = compute_surface_gravity(df)
         df = assign_dm_class(df)
         base_path = os.path.join(DATA_DIR, "exoplanet_data")

@@ -33,28 +33,6 @@
 			"titleBar.inactiveBackground": "#73be6a99",
 			"titleBar.inactiveForeground": "#15202b99"
 		},
-		"peacock.color": "#73be6a",
-		"editor.formatOnSave": true,
-		"editor.fontFamily": "'Cascadia Code','XITS Math',Consolas, 'Droid Sans Mono', 'Courier New', monospace",
-		"editor.wordWrap": "wordWrapColumn",
-		"editor.formatOnPaste": true,
-		"markdownlint.lintWorkspaceGlobs": [
-			"**/*.{md,mkd,mdwn,mdown,markdown,markdn,mdtxt,mdtext,workbook}",
-			"!**/*.code-search",
-			"!**/bower_components",
-			"!**/node_modules",
-			"!**/.git",
-			"!**/vendor",
-			"!**/.venv"
-		],
-		"isort.check": true,
-		"git.alwaysShowStagedChangesResourceGroup": true,
-		"markdownlint.run": "onType",
-		"mediaPreview.video.autoPlay": true,
-		"mediaPreview.video.loop": true,
-		"merge-conflict.autoNavigateNextConflict.enabled": true
-	},
-	"extensions": {
-		"recommendations": []
+		"peacock.color": "#73be6a"
 	}
 }

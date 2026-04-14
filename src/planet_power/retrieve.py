@@ -41,12 +41,14 @@ def retrieve_exoplanet_data(
     Returns:
         DataFrame of exoplanet data.
     """
-    if not force_refresh and _is_cache_valid(PS_RAW_DATA_FILE):
+    raw_data_file = PSCOMPPARS_RAW_DATA_FILE if pscomppars else PS_RAW_DATA_FILE
+    data_table = "pscomppars" if pscomppars else "ps"
+    if not force_refresh and _is_cache_valid(raw_data_file):
         print(
-            f"Loading cached data from {os.path.basename(PS_RAW_DATA_FILE)} …",
+            f"Loading cached data from {os.path.basename(raw_data_file)} …",
             flush=True,
         )
-        df = pd.read_csv(PS_RAW_DATA_FILE, encoding="utf-8")
+        df = pd.read_csv(raw_data_file, encoding="utf-8")
         print(f"  → {len(df):,} planets loaded from cache.")
         return df
     cols = None
@@ -57,11 +59,13 @@ def retrieve_exoplanet_data(
             cols = ",".join(USUAL_PS_COLUMNS)
     else:
         cols = ",".join(columns)
-    query = f"SELECT {cols} FROM {'pscomppars' if pscomppars else 'ps'} WHERE {WHERE} ORDER BY pl_bmassj ASC, pl_radj"
+    query = (
+        f"SELECT {cols} FROM {data_table} WHERE {WHERE} ORDER BY pl_bmassj ASC, pl_radj"
+    )
     params = {"query": query, "format": "csv"}
 
     print(
-        f"Querying NASA Exoplanet Archive table '{'pscomppars' if pscomppars else 'ps'}' …",
+        f"Querying NASA Exoplanet Archive table '{data_table}' …",
         flush=True,
     )
     resp = requests.get(TAP_BASE, params=params, timeout=120)
@@ -71,7 +75,12 @@ def retrieve_exoplanet_data(
     print(f"  → {len(df):,} planets retrieved.")
 
     os.makedirs(DATA_DIR, exist_ok=True)
-    df.to_csv(PS_RAW_DATA_FILE, index=False, quoting=1, encoding="utf-8")
-    print(f"  → Saved raw data to {os.path.basename(PS_RAW_DATA_FILE)}")
+    df.to_csv(
+        raw_data_file,
+        index=False,
+        quoting=1,
+        encoding="utf-8",
+    )
+    print(f"  → Saved raw data to {os.path.basename(data_table)}")
 
     return df

@@ -2,13 +2,6 @@
 
 A Python script that queries the [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) for all confirmed exoplanets with known mass, radius, and density, computes surface gravity with propagated uncertainties, classifies each planet using the Durand-Manterola (2011) three-class scheme, and exports the result as a formatted Excel workbook.
 
-## Dependencies
-
-[![numpy](https://img.shields.io/pypi/v/numpy?label=numpy)](https://numpy.org/)
-[![pandas](https://img.shields.io/pypi/v/pandas?label=pandas)](https://pandas.pydata.org/)
-[![matplotlib](https://img.shields.io/pypi/v/matplotlib?label=matplotlib)](https://matplotlib.org/)
-[![openpyxl](https://img.shields.io/pypi/v/openpyxl?label=openpyxl)](https://openpyxl.readthedocs.io/)
-
 ---
 
 ## Contents
@@ -21,7 +14,7 @@ A Python script that queries the [NASA Exoplanet Archive](https://exoplanetarchi
   - [Durand-Manterola classification](#durand-manterola-classification)
 - [Caveats and known limitations](#caveats-and-known-limitations)
 - [My Observations](#my-observations)
-- [Future directions](#future-directions)
+- [Future directions](#future-directions-and-things-to-consider)
 - [Citation](#citation)
 
 ---
@@ -42,6 +35,13 @@ curl -fsSL https://raw.githubusercontent.com/CoryAlbrecht/planet-power-law-distr
 irm https://raw.githubusercontent.com/CoryAlbrecht/planet-power-law-distribution/main/install.ps1 | iex
 ```
 
+## Dependencies
+
+[![numpy](https://img.shields.io/pypi/v/numpy?label=numpy)](https://numpy.org/)
+[![pandas](https://img.shields.io/pypi/v/pandas?label=pandas)](https://pandas.pydata.org/)
+[![matplotlib](https://img.shields.io/pypi/v/matplotlib?label=matplotlib)](https://matplotlib.org/)
+[![openpyxl](https://img.shields.io/pypi/v/openpyxl?label=openpyxl)](https://openpyxl.readthedocs.io/)
+
 ### Manual install
 
 ```bash
@@ -57,7 +57,7 @@ $ source .venv/bin/activate  # Linux/macOS
 # Install package
 $ pip install -e .
 
-# Retrieve data from te NASA Exoplanet Archive database and generate initial output files with some added calculated data
+# Retrieve data from the NASA Exoplanet Archive database and generate output files
 # If the data file is already there and less than a week old, it won't retrieve it again
 $ planet-power -r
 $ planet-power --retrieve
@@ -112,16 +112,21 @@ Documents the TAP query used, physical constants, all computed column formulae, 
 
 ### CLI Options
 
-| Option                                     | Description                                                             |
-|--------------------------------------------|-------------------------------------------------------------------------|
-| `-f`, `--fetch`                            | Fetch data from NASA Exoplanet Archive                                  |
-| `-s`, `--split`                            | Create split files for scatter plots                                    |
-| `-F COLUMN:REGEX`, `--filter COLUMN:REGEX` | Filter out rows where COLUMN matches REGEX (can be used multiple times) |
-| `-t TAG`, `--tag TAG`                      | Tag to append to split output filenames                                 |
-| `-S FILE`, `--script FILE`                 | File to read a list of commands from                                    |
-| `-C KEEP`, `--clean-up KEEP`               | Delete old files, keep KEEP most recent sets                            |
-| `-o FILE`, `--output FILE`                 | Output Excel file (default: auto-generated timestamped name)            |
-| `--force-refresh`                          | Force refresh of raw data from NASA Exoplanet Archive                   |
+| Option                                                      | Description                                                             |
+|-------------------------------------------------------------|-------------------------------------------------------------------------|
+| `-r`, `--retrieve`                                          | Fetch data from NASA Exoplanet Archive                                  |
+| `-s`, `--split`                                             | Create split files for scatter plots                                    |
+| `-F COLUMN:REGEX`, `--filter COLUMN:REGEX`                  | Filter out rows where COLUMN matches REGEX (can be used multiple times) |
+| `-t TAG`, `--tag TAG`                                       | Tag to append to split output filenames                                 |
+| `-c COLUMN\|~REGEX\|@FILE`,`--column COLUMN\|~REGEX\|@FILE` | Choose columns for fetching or splitting                                |
+|                                                             | If the value starts with a ~ it is a reguar expression                  |
+|                                                             | If the value starts with a @ it is a text file with one value per line  |
+|                                                             | (files cannot contain mort @FILE entries, no nesting)                   |
+|                                                             | Otherwise it is the exact name of a column                              |
+| `--help-columns`                                            | List out all avaiable columns                                           |
+| `-S FILE`, `--script FILE`                                  | File to read a list of commands from                                    |
+| `-o FILE`, `--output FILE`                                  | Output Excel file (default: auto-generated timestamped name)            |
+| `-R`, `--refresh`                                           | Force refresh of raw data from NASA Exoplanet Archive                   |
 
 ---
 
