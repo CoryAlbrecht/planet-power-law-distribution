@@ -124,7 +124,7 @@ To address the goal of identifying structural breaks without the noise of low-qu
 
 The weight is calculated using a two-stage process:
 
-1.  **Provenance Factor:** Direct measurements (e.g., Radial Velocity mass or Transit radius) are given a base weight of $1.0$. Entries derived from a mass-radius relationship (e.g., Chen & Kipping) or listed simply as $M\sin(i)$ without an inclination are penalized with a base weight of $0.0$ or $0.1$ to prevent them from skewing the power-law regression.
+1.  **Provenance Factor:** Direct measurements (e.g., Radial Velocity mass or Transit radius) are given a base weight of $1.0$. Entries derived from a mass-radius relationship (e.g., Chen & Kipping (2017)) or listed simply as $M\sin(i)$ without an inclination are penalized with a base weight of $0.0$ or $0.1$ to prevent them from skewing the power-law regression.
 
 2.  **Precision Factor:** An exponential decay function is applied to the relative error ($\delta = \sigma/v$):
     $$W = W_{base} \cdot e^{-\delta}$$
@@ -174,29 +174,31 @@ The script generates high-resolution scatter plots (e.g., Mass vs. Radius) using
 
 ## My Observations
 
-Three distinct groups of planets that can be seen in the unfiltered data
+Three distinct groups of planets that can be seen in the unfiltered data with a very strong central line with two knees in it.
 
 - A <= 1.2×10^25
 - 1.2×10^25 <= B <= 8.1×10^26
 - C >= 8.1×10^26
 
-But the inflection points between the groups are oddly sharp. When a planet has a measured mass but no observed transit radius, the NASA Exoplanet Archive calculates the radius using the Chen & Kipping piecewise power law. That relation has hard breakpoints built into it — the Archive's own documentation lists the exact boundaries at 2.04, 132, and 26,600 M_Earth, or 1.22×10^25 kg, 7.90×10^26 kg, and 1.589×10^29 kg.
+But the inflection points between the groups are oddly sharp. When a planet has a measured mass but no observed transit radius, the NASA Exoplanet Archive calculates the mass or radius when missing using the Chen & Kipping (2017) piecewise power law. That relation has hard breakpoints built into it — the Archive's own documentation lists the exact boundaries at 2.04, 132, and 26,600 M_Earth, or 1.22×10^25 kg, 7.90×10^26 kg, and 1.589×10^29 kg.
 
-The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can be filtered out when creating the split files for each comparison vs mass. The three groups exist after such filtering but are much more fuzzy and closer to Durand-Manterola's originals ranges. Closer analysis needs to be done to see if Durand-Manterola's power law curves are still accurate with the expanded dataset, or if they need to be tweaked.
+The Exoplanet Archive data has the `pl_bmassprov` column, which means exoplanet mass can be filtered and weight a bit more granularly by mass to help get rid of the Chen & Kipping artefact. While that does work somewhat, making the central line described above  a bit weaker, especially for lower mass planets, we still need to filter out the ones where radius is calculated rather than observed.
+
+ The three groups exist after such weighting and filtering, but are much more fuzzy and closer to Durand-Manterola's originals ranges. Closer analysis needs to be done to see if Durand-Manterola's power law curves are still accurate with the expanded dataset, or if they need to be adjusted.
 
 ### Figure 1. Mass vs. Radius
 
-| Unfiltered, showing Chen & Kipping piecewise power law artefact                         | Filtered                                                                          |
-|-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
-| 6,020 records                                                                           | 3,158 records                                                                     |
-| ![Mass vs. Radius, unfiltered](data/pscomppars-mass-vs-radius.example_not_filtered.png) | ![Mass vs. Radius, filtered](data/pscomppars-mass-vs-radius.example_filtered.png) |
+| Unfiltered, showing Chen & Kipping piecewise power law artefact                         | Filtered                                                                          | Filtered More
+|-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|---|
+| 6,020 records                                                                           | 3,158 records                                                                     | 1,656 |
+| ![Mass vs. Radius, unfiltered](data/pscomppars-mass-vs-radius.example_not_filtered.png) | ![Mass vs. Radius, filtered](data/pscomppars-mass-vs-radius.example_filtered.png) | ![Mass vs. Radius, filtered](data/pscomppars-mass-vs-radius.example_filtered_more.png) |
 
 ### Figure 2. Mass vs. Density
 
-| Unfiltered, showing Chen & Kipping piecewise power law artefact                           | Filtered                                                                            |
-|-------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| 6,020 records                                                                             | 3,158 records                                                                       |
-| ![Mass vs. Density, unfiltered](data/pscomppars-mass-vs-density.example_not_filtered.png) | ![Mass vs. Density, filtered](data/pscomppars-mass-vs-density.example_filtered.png) |
+| Unfiltered, showing Chen & Kipping piecewise power law artefact | Filtered      | Filtered More |
+|-----------------------------------------------------------------|---------------|---------------|
+| 6,020 records                                                   | 3,158 records | 1,656         |
+| ![Mass vs. Density, unfiltered](data/pscomppars-mass-vs-density.example_not_filtered.png) | ![Mass vs. Density, filtered](data/pscomppars-mass-vs-density.example_filtered.png) | ![Mass vs. Density, filtered](data/pscomppars-mass-vs-density.example_filtered_more.png)
 
 ---
 
