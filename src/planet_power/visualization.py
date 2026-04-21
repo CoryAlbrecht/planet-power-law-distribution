@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import warnings
-
 import matplotlib
 
 matplotlib.use("Agg")
@@ -11,7 +9,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.axes import Axes
+from matplotlib.colors import to_rgba
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 
 def save_scatter_png(
@@ -23,70 +22,122 @@ def save_scatter_png(
     y_col: str,
     y_err_plus_col: str,
     y_err_minus_col: str,
+    x_weight_col: str | None = None,
+    y_weight_col: str | None = None,
     point_color: str = "#027BA3",
     x_err_color: str = "#027BA3",
     y_err_color: str = "#027BA3",
-    width_px: int = 1920,
-    height_px: int = 1080,
+    width_px: int = 3840,
+    height_px: int = 2160,
+    error_cross: bool = True,
 ) -> None:
     """
-    Save a log-log scatter plot with error crosses to a PNG file.
-
-    Parameters
-    ----------
-    df : DataFrame containing the data columns.
-    output_path : Full path to the output .png file.
-    x_col : Column name for x-axis data points.
-    x_err_plus_col : Column name for positive x-axis uncertainties.
-    x_err_minus_col : Column name for negative x-axis uncertainties (stored as
-        negative numbers; absolute values are used automatically).
-    y_col : Column name for y-axis data points.
-    y_err_plus_col : Column name for positive y-axis uncertainties.
-    y_err_minus_col : Column name for negative y-axis uncertainties (stored as
-        negative numbers; absolute values are used automatically).
-    point_color : Matplotlib colour for the data point markers (default: #027BA3).
-    x_err_color : Matplotlib colour for horizontal error bars (default: #027BA3).
-    y_err_color : Matplotlib colour for vertical error bars (default: #027BA3).
-    width_px : Output image width in pixels (default: 1920).
-    height_px : Output image height in pixels (default: 1080).
+    Generate a high-resolution scatter plot with axis-specific reliability colors,
+    mean-based point alpha, and inset distribution bar charts.
     """
-    warnings.filterwarnings("ignore", module="matplotlib")
 
-    x_vals = pd.to_numeric(df[x_col], errors="coerce")
-    y_vals = pd.to_numeric(df[y_col], errors="coerce")
+    if x_weight_col and y_weight_col:
+        # Convert weight columns to numeric and clamp to [0, 1]
+        wx = np.clip(
+            pd.to_numeric(df[x_weight_col], errors="coerce").fillna(0).values, 0, 1
+        )
+        wy = np.clip(
+            pd.to_numeric(df[y_weight_col], errors="coerce").fillna(0).values, 0, 1
+        )
 
-    valid = (x_vals > 0) & (y_vals > 0) & np.isfinite(x_vals) & np.isfinite(y_vals)
-    df = df[valid]
-    if len(df) == 0:
-        print(f"\tNo valid data to plot for {x_col} vs {y_col}")
-        return
+        # 1. Horizontal Error Color (X-axis reliability: Red)
+        rgba_x_err = np.column_stack([np.ones_like(wx), 1.0 - wx, 1.0 - wx, wx])
 
-    dpi = 100
-    fig, ax = plt.subplots(figsize=(width_px / dpi, height_px / dpi), dpi=dpi)  # type: ignore[reportUnknownMemberType]
-    assert isinstance(ax, Axes)
+        # 2. Vertical Error Color (Y-axis reliability: Blue)
+        rgba_y_err = np.column_stack([1.0 - wy, 1.0 - wy, np.ones_like(wy), wy])
+
+        # 3. Scatter Point Color (Additive intersection mix)
+        # Alpha is the ARITHMETIC MEAN of both weightings.
+        rgba_points = np.column_stack([wx, np.zeros_like(wx), wy, (wx + wy) / 2.0])
+    else:
+        # Fallback logic
+        alphas = np.full(len(df), 0.4)
+        rgba_points = [to_rgba(point_color, a) for a in alphas]
+        rgba_x_err = [to_rgba(x_err_color, a) for a in alphas]
+        rgba_y_err = [to_rgba(y_err_color, a) for a in alphas]
+        wx = None
+        wy = None
+
+    dpi = 150
+    fig, ax = plt.subplots(figsize=(width_px / dpi, height_px / dpi), dpi=dpi)
+
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
 
     x = df[x_col].values
     y = df[y_col].values
-    xerr = [
-        np.abs(pd.to_numeric(df[x_err_minus_col], errors="coerce").fillna(0).values),
-        np.abs(pd.to_numeric(df[x_err_plus_col], errors="coerce").fillna(0).values),
-    ]
-    yerr = [
-        np.abs(pd.to_numeric(df[y_err_minus_col], errors="coerce").fillna(0).values),
-        np.abs(pd.to_numeric(df[y_err_plus_col], errors="coerce").fillna(0).values),
-    ]
 
-    # Plot points and error bars separately so each can carry its own colour.
-    ax.errorbar(x, y, xerr=xerr, fmt="none", elinewidth=1.0, ecolor=x_err_color, capsize=2, alpha=0.4)  # type: ignore[reportArgumentType]
-    ax.errorbar(x, y, yerr=yerr, fmt="none", elinewidth=1.0, ecolor=y_err_color, capsize=2, alpha=0.4)  # type: ignore[reportArgumentType]
-    ax.scatter(x, y, color=point_color, s=5, alpha=0.4, zorder=3)  # type: ignore[reportUnknownMemberType]
+    if error_cross:
+        x_min = x - np.abs(
+            pd.to_numeric(df[x_err_minus_col], errors="coerce").fillna(0).values
+        )
+        x_max = x + np.abs(
+            pd.to_numeric(df[x_err_plus_col], errors="coerce").fillna(0).values
+        )
+        y_min = y - np.abs(
+            pd.to_numeric(df[y_err_minus_col], errors="coerce").fillna(0).values
+        )
+        y_max = y + np.abs(
+            pd.to_numeric(df[y_err_plus_col], errors="coerce").fillna(0).values
+        )
 
-    ax.set_xscale("log")  # type: ignore[reportUnknownMemberType]
-    ax.set_yscale("log")  # type: ignore[reportUnknownMemberType]
-    ax.set_xlabel(x_col)  # type: ignore[reportUnknownMemberType]
-    ax.set_ylabel(y_col)  # type: ignore[reportUnknownMemberType]
-    ax.set_title(f"{x_col} vs {y_col}, {len(x)} points")  # type: ignore[reportUnknownMemberType]
+        ax.hlines(y, x_min, x_max, colors=rgba_x_err, linewidth=1, alpha=None)
+        ax.vlines(x, y_min, y_max, colors=rgba_y_err, linewidth=1, alpha=None)
+
+    ax.scatter(x, y, color=rgba_points, s=10, zorder=3)
+
+    # Inset Bar Graphs for Weight Distributions
+    if wx is not None and wy is not None:
+        # Decile bins: 0-0.1, 0.1-0.2, ..., 0.9-1.0
+        bins = np.linspace(0, 1, 11)
+
+        # Inset for X Weightings (Red)
+        ax_ins_x = inset_axes(
+            ax,
+            width="20%",
+            height="15%",
+            loc="upper left",
+            bbox_to_anchor=(0.02, -0.02, 1, 1),
+            bbox_transform=ax.transAxes,
+        )
+        counts_x, _ = np.histogram(wx, bins=bins)
+        ax_ins_x.bar(
+            bins[:-1], counts_x, width=0.08, color="red", align="edge", alpha=0.8
+        )
+        ax_ins_x.set_title("X Weight Dist", fontsize=8, color="red", pad=2)
+        ax_ins_x.tick_params(axis="both", which="both", labelsize=6, length=2)
+        ax_ins_x.set_xticks([0, 0.5, 1])
+
+        # Inset for Y Weightings (Blue) - Positioned below the first inset
+        ax_ins_y = inset_axes(
+            ax,
+            width="20%",
+            height="15%",
+            loc="upper left",
+            bbox_to_anchor=(0.02, -0.22, 1, 1),
+            bbox_transform=ax.transAxes,
+        )
+        counts_y, _ = np.histogram(wy, bins=bins)
+        ax_ins_y.bar(
+            bins[:-1], counts_y, width=0.08, color="blue", align="edge", alpha=0.8
+        )
+        ax_ins_y.set_title("Y Weight Dist", fontsize=8, color="blue", pad=2)
+        ax_ins_y.tick_params(axis="both", which="both", labelsize=6, length=2)
+        ax_ins_y.set_xticks([0, 0.5, 1])
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel(x_col)
+    ax.set_ylabel(y_col)
+
+    # Utilizing the intersection character \u2A40 as you previously suggested
+    ax.set_title(f"{x_col} vs {y_col} \u2a40 {len(x)} points (Mean Reliability Alpha)")
 
     plt.tight_layout()
-    plt.savefig(output_path)  # type: ignore[reportUnknownMemberType]
+    plt.savefig(output_path)
     plt.close()

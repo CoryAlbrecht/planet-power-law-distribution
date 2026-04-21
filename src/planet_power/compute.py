@@ -1,11 +1,13 @@
-"""Compute surface gravity and assign Durand-Manterola classes."""
+"""Compute weights, surface gravity, and assign Durand-Manterola classes."""
 
+import os
 from typing import cast
 
 import numpy as np
 import pandas as pd
 
 from planet_power.constants import (
+    DATA_DIR,
     DM_AB_KG,
     DM_BC_KG,
     DM_GRAVITY,
@@ -14,6 +16,137 @@ from planet_power.constants import (
     R_JUP_M,
     G,
 )
+
+
+def calculate_astrophysical_weight(
+    value: float,
+    err_plus: float | None = None,
+    err_minus: float | None = None,
+    provenance: str | None = None,
+) -> float:
+    """
+    Calculate a normalized weight [0, 1] based on provenance and relative precision.
+    """
+
+    if provenance is not None:
+        # 1. Base Provenance Weighting
+        # (Using the hierarchy discussed previously)
+        prov_matrix = {
+            "Mass": 1.0,
+            "Msin(i)/sin(i)": 1.0,
+            "Msin(i)": 0.0,
+            "M-R relationship": 0.0,
+        }
+        w_base = prov_matrix.get(provenance, 0.1)
+    else:
+        w_base = 1.0
+
+    # 2. Handle Error Completeness
+    e1_exists = pd.notna(err_plus)
+    e2_exists = pd.notna(err_minus)
+
+    if not (e1_exists or e2_exists):
+        return w_base * 0.1  # Heavy penalty for no errors
+
+    if not (e1_exists and e2_exists):
+        w_base *= 0.6  # Penalty for unilateral constraint (one error missing)
+
+    # 3. Calculate Relative Error (Precision Factor)
+    # Use the absolute average of available errors
+    sigma = np.nanmean([np.abs(err_plus), np.abs(err_minus)])
+
+    if value <= 0 or pd.isna(sigma):
+        return 0.0
+
+    rel_error = sigma / value
+
+    # Precision Factor: Higher relative error = lower weight.
+    # Exponential decay ensures the weight drops off reasonably but
+    # doesn't hit zero too early.
+    precision_factor = np.exp(-rel_error)
+
+    return float(np.clip(w_base * precision_factor, 0, 1))
+
+
+def _row_mass_weight(row: pd.Series) -> float:
+    bmassj: float = row["pl_bmassj"]
+    bmassjerr1: float | None = (
+        row["pl_bmassjerr1"] if pd.notna(row["pl_bmassjerr1"]) else None
+    )
+    bmassjerr2: float | None = (
+        row["pl_bmassjerr2"] if pd.notna(row["pl_bmassjerr2"]) else None
+    )
+    bmassprov: str | None = (
+        row["pl_bmassprov"] if pd.notna(row["pl_bmassprov"]) else None
+    )
+    return calculate_astrophysical_weight(
+        value=bmassj, err_plus=bmassjerr1, err_minus=bmassjerr2, provenance=bmassprov
+    )
+
+
+def _row_radius_weight(row: pd.Series) -> float:
+    radius: float = row["pl_radj"]
+    err1: float | None = row["pl_radjerr1"] if pd.notna(row["pl_radjerr1"]) else None
+    err2: float | None = row["pl_radjerr2"] if pd.notna(row["pl_radjerr2"]) else None
+    return calculate_astrophysical_weight(value=radius, err_plus=err1, err_minus=err2)
+
+
+def _row_density_weight(row: pd.Series) -> float:
+    density: float = row["pl_dens"]
+    err1: float | None = row["pl_denserr1"] if pd.notna(row["pl_denserr1"]) else None
+    err2: float | None = row["pl_denserr2"] if pd.notna(row["pl_denserr2"]) else None
+    return calculate_astrophysical_weight(value=density, err_plus=err1, err_minus=err2)
+
+
+def compute_extras(df: pd.DataFrame, table: str = "ps", tag: str = "") -> pd.DataFrame:
+    """
+    Compute derived columns from raw NASA mass, radius, and density columns
+    and return them as a new DataFrame alongside the planet identity columns.
+
+    The output DataFrame is also written to a CSV named
+    ``{table}-computed[.{tag}].csv`` in DATA_DIR.
+
+    Parameters
+    ----------
+    df : DataFrame containing the raw NASA columns (pl_bmassj*, pl_radj*,
+        pl_bmassprov, pl_name, pl_letter, hostname).
+    table : Source table name used in the output filename (default: "ps").
+    tag : Optional tag appended to the output filename.
+
+    Returns
+    -------
+    DataFrame with identity columns and all ppld_* computed columns.
+    """
+
+    print("Computing extra data …")
+    extras_file = f"{table}-computed{'.'+tag if tag != '' else ''}.csv"
+
+    mass_weights: pd.Series[float] = df.apply(_row_mass_weight, axis=1)
+    radius_weights: pd.Series[float] = df.apply(_row_radius_weight, axis=1)
+    density_weights: pd.Series[float] = df.apply(_row_density_weight, axis=1)
+
+    df_extras = pd.DataFrame(
+        {
+            "hostname": df["hostname"],
+            "pl_letter": df["pl_letter"],
+            "pl_name": df["pl_name"],
+            "ppld_mass_kg": df["pl_bmassj"] * M_JUP_KG,
+            "ppld_mass_kg_err1": df["pl_bmassjerr1"] * M_JUP_KG,
+            "ppld_mass_kg_err2": df["pl_bmassjerr2"] * M_JUP_KG,
+            "ppld_mass_weight": mass_weights,
+            "ppld_radius_m": df["pl_radj"] * R_JUP_M,
+            "ppld_radius_m_err1": df["pl_radjerr1"] * R_JUP_M,
+            "ppld_radius_m_err2": df["pl_radjerr2"] * R_JUP_M,
+            "ppld_radius_weight": radius_weights,
+            "ppld_density_weight": density_weights,
+        }
+    )
+
+    output_path = os.path.join(DATA_DIR, extras_file)
+    df_extras.to_csv(output_path, index=False, quoting=1, encoding="utf-8")
+    print(f"  → Saved computed extras to {extras_file}")
+
+    return df_extras
 
 
 def compute_surface_gravity(df: pd.DataFrame) -> pd.DataFrame:

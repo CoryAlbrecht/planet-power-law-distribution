@@ -1,23 +1,22 @@
 """Query NASA Exoplanet Archive TAP service."""
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from io import StringIO
 
 import pandas as pd
 import requests
 
 from planet_power.constants import (
-    USUAL_PSCOMPPARS_COLUMNS,
-    USUAL_PS_COLUMNS,
     DATA_DIR,
+    MAX_AGE,
+    RAW_DATA_FILE_TEMPLATE,
     TAP_BASE,
-    WHERE,
+    USUAL_PS_COLUMNS,
+    USUAL_PS_WHERE,
+    USUAL_PSCOMPPARS_COLUMNS,
+    USUAL_PSCOMPPARS_WHERE,
 )
-
-PS_RAW_DATA_FILE = os.path.join(DATA_DIR, "ps-raw-data.csv")
-PSCOMPPARS_RAW_DATA_FILE = os.path.join(DATA_DIR, "pscomppars-raw-data.csv")
-MAX_AGE = timedelta(weeks=1)
 
 
 def _is_cache_valid(path: str) -> bool:
@@ -32,6 +31,7 @@ def retrieve_exoplanet_data(
     columns: list[str] | None = None,
     force_refresh: bool = False,
     pscomppars: bool = False,
+    tag: str = "",
 ) -> pd.DataFrame:
     """Query NASA Exoplanet Archive TAP service.
 
@@ -41,8 +41,14 @@ def retrieve_exoplanet_data(
     Returns:
         DataFrame of exoplanet data.
     """
-    raw_data_file = PSCOMPPARS_RAW_DATA_FILE if pscomppars else PS_RAW_DATA_FILE
     data_table = "pscomppars" if pscomppars else "ps"
+
+    raw_data_file = os.path.join(
+        DATA_DIR,
+        RAW_DATA_FILE_TEMPLATE.replace("%t", data_table).replace(
+            "%T", f".{tag}" if tag != "" else ""
+        ),
+    )
     if not force_refresh and _is_cache_valid(raw_data_file):
         print(
             f"Loading cached data from {os.path.basename(raw_data_file)} …",
@@ -59,9 +65,12 @@ def retrieve_exoplanet_data(
             cols = ",".join(USUAL_PS_COLUMNS)
     else:
         cols = ",".join(columns)
-    query = (
-        f"SELECT {cols} FROM {data_table} WHERE {WHERE} ORDER BY pl_bmassj ASC, pl_radj"
-    )
+    where = ""
+    if pscomppars:
+        where = f" WHERE {USUAL_PSCOMPPARS_WHERE}"
+    else:
+        where = f" WHERE {USUAL_PS_WHERE}"
+    query = f"SELECT {cols} FROM {data_table} {where}"
     params = {"query": query, "format": "csv"}
 
     print(
@@ -71,9 +80,11 @@ def retrieve_exoplanet_data(
     resp = requests.get(TAP_BASE, params=params, timeout=120)
     resp.raise_for_status()
 
+    print("Parsing retrieved data …")
     df = pd.read_csv(StringIO(resp.text), comment="#", encoding="utf-8")
     print(f"  → {len(df):,} planets retrieved.")
 
+    print("Saving data to CSV file")
     os.makedirs(DATA_DIR, exist_ok=True)
     df.to_csv(
         raw_data_file,
@@ -81,6 +92,6 @@ def retrieve_exoplanet_data(
         quoting=1,
         encoding="utf-8",
     )
-    print(f"  → Saved raw data to {os.path.basename(data_table)}")
+    print(f"  → Saved raw data to {os.path.basename(raw_data_file)}")
 
     return df

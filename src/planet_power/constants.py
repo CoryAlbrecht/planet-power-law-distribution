@@ -1,9 +1,14 @@
 """Physical constants and configuration values."""
 
-import os as _os
+import os
+from datetime import timedelta
 
-DATA_DIR = _os.path.join(
-    _os.path.dirname(_os.path.dirname(_os.path.dirname(__file__))), "data"
+RAW_DATA_FILE_TEMPLATE = "%t-raw-data%T.csv"
+COMPUTED_DATA_FILE_TEMPLATE = "%t-computed%T.csv"
+MAX_AGE = timedelta(weeks=1)
+
+DATA_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data"
 )
 
 G = 6.67430e-11
@@ -22,7 +27,14 @@ DM_GRAVITY: dict[str, tuple[float, float]] = {
 
 TAP_BASE = "https://exoplanetarchive.ipac.caltech.edu/TAP/sync"
 
+USUAL_PS_WHERE = "pl_bmassj IS NOT NULL AND pl_radj IS NOT NULL AND pl_dens IS NOT NULL"
+
+USUAL_PSCOMPPARS_WHERE = (
+    "pl_bmassj IS NOT NULL AND pl_radj IS NOT NULL AND pl_dens IS NOT NULL"
+)
+
 ALL_PSCOMPPARS_COLUMNS = [
+    "objectid",
     "pl_name",
     "pl_letter",
     "hostid",
@@ -1065,6 +1077,18 @@ ALL_PS_COLUMNS = [
     "sy_kmagerr2",
 ]
 
+ALL_COMPUTED_COLUMNS = [
+    "ppld_mass_kg",
+    "ppld_mass_kg_err1",
+    "ppld_mass_kg_err2",
+    "ppld_mass_weight",
+    "ppld_radius_m",
+    "ppld_radius_m_err1",
+    "ppld_radius_m_err2",
+    "ppld_radius_weight",
+    "ppld_density_weight",
+]
+
 USUAL_PSCOMPPARS_COLUMNS = [
     "hostname",
     "pl_name",
@@ -1080,16 +1104,6 @@ USUAL_PSCOMPPARS_COLUMNS = [
     "pl_massjstr",
     "pl_massjsymerr",
     #
-    "pl_masse",
-    "pl_masseerr1",
-    "pl_masseerr2",
-    "pl_masseformat",
-    "pl_masselim",
-    "pl_masse_reflink",
-    "pl_masse_solnid",
-    "pl_massestr",
-    "pl_massesymerr",
-    #
     "pl_bmassj",
     "pl_bmassjerr1",
     "pl_bmassjerr2",
@@ -1100,36 +1114,6 @@ USUAL_PSCOMPPARS_COLUMNS = [
     "pl_bmassjstr",
     "pl_bmassjsymerr",
     "pl_bmassprov",
-    #
-    "pl_bmasse",
-    "pl_bmasseerr1",
-    "pl_bmasseerr2",
-    "pl_bmasseformat",
-    "pl_bmasselim",
-    "pl_bmasse_reflink",
-    "pl_bmasse_solnid",
-    "pl_bmassestr",
-    "pl_bmassesymerr",
-    #
-    "pl_cmassj",
-    "pl_cmassjerr1",
-    "pl_cmassjerr2",
-    "pl_cmassjformat",
-    "pl_cmassjlim",
-    "pl_cmassj_reflink",
-    "pl_cmassj_solnid",
-    "pl_cmassjstr",
-    "pl_cmassjsymerr",
-    #
-    "pl_cmasse",
-    "pl_cmasseerr1",
-    "pl_cmasseerr2",
-    "pl_cmasseformat",
-    "pl_cmasselim",
-    "pl_cmasse_reflink",
-    "pl_cmasse_solnid",
-    "pl_cmassestr",
-    "pl_cmassesymerr",
     #
     "pl_radj",
     "pl_radjerr1",
@@ -1164,48 +1148,12 @@ USUAL_PS_COLUMNS = [
     "pl_massjlim",
     "pl_massjstr",
     #
-    "pl_masse",
-    "pl_masseerr1",
-    "pl_masseerr2",
-    "pl_masselim",
-    "pl_massestr",
-    #
     "pl_bmassj",
     "pl_bmassjerr1",
     "pl_bmassjerr2",
     "pl_bmassjlim",
     "pl_bmassjstr",
     "pl_bmassprov",
-    #
-    "pl_bmasse",
-    "pl_bmasseerr1",
-    "pl_bmasseerr2",
-    "pl_bmasselim",
-    "pl_bmassestr",
-    #
-    "pl_cmassj",
-    "pl_cmassjerr1",
-    "pl_cmassjerr2",
-    "pl_cmassjlim",
-    "pl_cmassjstr",
-    #
-    "pl_cmasse",
-    "pl_cmasseerr1",
-    "pl_cmasseerr2",
-    "pl_cmasselim",
-    "pl_cmassestr",
-    #
-    "pl_msinij",
-    "pl_msinijerr1",
-    "pl_msinijerr2",
-    "pl_msinijlim",
-    "pl_msinijstr",
-    #
-    "pl_msinie",
-    "pl_msinieerr1",
-    "pl_msinieerr2",
-    "pl_msinielim",
-    "pl_msiniestr",
     #
     "pl_radj",
     "pl_radjerr1",
@@ -1226,7 +1174,6 @@ USUAL_PS_COLUMNS = [
     "pl_densstr",
 ]
 
-WHERE = "(pl_bmassj IS NOT NULL OR pl_bmasse IS NOT NULL) AND (pl_radj IS NOT NULL OR pl_rade IS NOT NULL) AND pl_dens IS NOT NULL"
 
 GROUP_COLOURS = {
     "Identity": "D9EAD3",
