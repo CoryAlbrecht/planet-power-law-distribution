@@ -1,6 +1,6 @@
 # Exoplanet Mass–Radius–Density–Gravity Dataset
 
-A Python script that queries the [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) for all confirmed exoplanets with known mass, radius, and density, computes surface gravity with propagated uncertainties, classifies each planet using the Durand-Manterola (2011) three-class scheme, and exports the result as a formatted Excel workbook.
+A Python script that queries the [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) for all confirmed exoplanets with known mass, radius, and density. It then computes the mass in kilograms and radius in meters, as well as calculates a reliability weighting for each entry, and classifies each planet using the Durand-Manterola (2011) three-class scheme, and exports the result as CSV files. Also creates scatter plots from the data.
 
 ---
 
@@ -10,8 +10,10 @@ A Python script that queries the [NASA Exoplanet Archive](https://exoplanetarchi
 - [Output](#output)
 - [Methodology](#methodology)
   - [Data source](#data-source)
+  - [Weighting](#weighting)
   - [Surface gravity](#surface-gravity)
   - [Durand-Manterola classification](#durand-manterola-classification)
+- [Visualization](#visualization)
 - [Caveats and known limitations](#caveats-and-known-limitations)
 - [My Observations](#my-observations)
 - [Future directions](#future-directions-and-things-to-consider)
@@ -40,7 +42,6 @@ irm https://raw.githubusercontent.com/CoryAlbrecht/planet-power-law-distribution
 [![numpy](https://img.shields.io/pypi/v/numpy?label=numpy)](https://numpy.org/)
 [![pandas](https://img.shields.io/pypi/v/pandas?label=pandas)](https://pandas.pydata.org/)
 [![matplotlib](https://img.shields.io/pypi/v/matplotlib?label=matplotlib)](https://matplotlib.org/)
-[![openpyxl](https://img.shields.io/pypi/v/openpyxl?label=openpyxl)](https://openpyxl.readthedocs.io/)
 
 ### Manual install
 
@@ -66,121 +67,92 @@ $ planet-power --retrieve
 $ planet-power -r -R
 $ planet-power -r --refresh
 
-# Create split files for plotting with no filtering
-planet-power --split
+# Get the PSCompPars data table instead of the PS data table
+$ planet-power -r -p
+$ planet-power -r --pscomppars
+
+# Compute the extra values
+$ planet-power --compute
+$ planet-power -c -p
+
+# Create split files for plotting with no filtering, may be with downloaded PSCompPars data
+$ planet-power --split
+$ planet-power -s -p
 
 # Create split files for plotting with filtering out calculated values from one column
-planet-power -s --filter pl_bmassj_reflink:CALCULATED_VALUE
+$ planet-power -s --filter "pl_bmassprov:M-R relationship"
+$ planet-power -s -f "pl_bmassprov:M-R relationship"
 
-# Create split files for plotting with filtering out calculated values from two column
-planet-power -s -f pl_bmassj_reflink:CALCULATED_VALUE -f pl_dens_reflink:CALCULATED_VALUE
+# Create split files for plotting with filtering out calculated values from two columns, using PSCompPars data
+$ planet-power -s -p -f "pl_bmassprov:M-R relationship" -f pl_dens_reflink:CALCULATED_VALUE
 
+# Steps can be combind into one invocation
+$ planet-power -r -R -p -C -t tag1
+$ planet-power -C -p --tag tag1 -s -f "pl_bmassprov:M-R relationship" -c "~pl_bmassj.*" -c pl_bmassprov -c "~pl_radj.*" -c "~pl_dens.*" -c "~ppld_.*"
 ```
 
 No API key is required. The script queries NASA's public TAP service directly.
 
 ---
 
-## Output
+## CLI Options
 
-The workbook contains two sheets.
+| Option | Description | Output |
+|--------|-------------|--------|
+| `-r`, `--retrieve`                                          | Fetch data from NASA Exoplanet Archive                                                                                                                                                                                                                          | CSV
+| `-R`, `--refresh`                                           | Force refresh of raw data from NASA Exoplanet Archive                                                                                                                                                                                                           | CSV
+| `-C`, `--compute`                                           | Create extra CSV file with computed values not in the NASA Exoplanet Archive data                                                                                                                                                                               | CSV
+| `-s`, `--split`                                             | Create split files for scatter plots                                                                                                                                                                                                                            | CSV, PNG
+| `-f COLUMN:REGEX`, `--filter COLUMN:REGEX`                  | Filter out rows where COLUMN matches REGEX (can be used multiple times)                                                                                                                                                                                         |  |
+| `-t TAG`, `--tag TAG`                                       | Tag to append to split output filenames                                                                                                                                                                                                                         |  |
+| `-c COLUMN\|~REGEX\|@FILE`,`--column COLUMN\|~REGEX\|@FILE` | Choose columns for fetching or splitting <ul><li>If the value starts with a ~ it is a reguar expression</li><li>If the value starts with a @ it is a text file with one value per line, no nesting</li><li>Otherwise it is the exact name of a column</li></ul> |
+| `--help-columns`                                            | List out all avaiable columns                                                                                                                                                                                                                                   |  |
 
-### Exoplanets sheet
+All output data ends up in the `./data` directory.
 
-One row per confirmed exoplanet. Uses original NASA column names plus computed columns:
-
-| Group            | Columns                                                   |
-|------------------|-----------------------------------------------------------|
-| Identity         | pl_name, hostname, pl_letter                              |
-| Discovery        | discoverymethod, disc_year, disc_facility                 |
-| Orbit            | pl_orbper, pl_orbsmax                                     |
-| Mass (Jupiter)   | pl_bmassj with ±errors                                    |
-| Mass (Earth)     | pl_bmasse with ±errors                                    |
-| Computed Mass    | ppld_mass_kg with ±errors                                 |
-| Radius (Jupiter) | pl_radj with ±errors                                      |
-| Radius (Earth)   | pl_rade with ±errors                                      |
-| Computed Radius  | ppld_radius_m with ±errors                                |
-| Density          | pl_dens with ±errors                                      |
-| Surface Gravity  | ppld_surf_grav_ms2 and ppld_surf_grav_earth, with ±errors |
-| DM Class         | dm_class, dm_pred_g_ms2, dm_grav_residual                 |
-| Stellar          | pl_eqt, pl_insol, st_teff, st_rad, st_mass                |
-| System           | sy_dist, sy_snum, sy_pnum                                 |
-
-### Notes sheet
-
-Documents the TAP query used, physical constants, all computed column formulae, the Durand-Manterola classification scheme, and citation information.
-
-### CLI Options
-
-| Option                                                      | Description                                                             |
-|-------------------------------------------------------------|-------------------------------------------------------------------------|
-| `-r`, `--retrieve`                                          | Fetch data from NASA Exoplanet Archive                                  |
-| `-s`, `--split`                                             | Create split files for scatter plots                                    |
-| `-F COLUMN:REGEX`, `--filter COLUMN:REGEX`                  | Filter out rows where COLUMN matches REGEX (can be used multiple times) |
-| `-t TAG`, `--tag TAG`                                       | Tag to append to split output filenames                                 |
-| `-c COLUMN\|~REGEX\|@FILE`,`--column COLUMN\|~REGEX\|@FILE` | Choose columns for fetching or splitting                                |
-|                                                             | If the value starts with a ~ it is a reguar expression                  |
-|                                                             | If the value starts with a @ it is a text file with one value per line  |
-|                                                             | (files cannot contain mort @FILE entries, no nesting)                   |
-|                                                             | Otherwise it is the exact name of a column                              |
-| `--help-columns`                                            | List out all avaiable columns                                           |
-| `-S FILE`, `--script FILE`                                  | File to read a list of commands from                                    |
-| `-o FILE`, `--output FILE`                                  | Output Excel file (default: auto-generated timestamped name)            |
-| `-R`, `--refresh`                                           | Force refresh of raw data from NASA Exoplanet Archive                   |
+---
 
 ---
 
 ## Methodology
 
 ### Data source
+The script utilizes the NASA Exoplanet Archive TAP service to retrieve the `pscomppars` (Planetary Systems Composite Parameters) table. This table is preferred as it provides a single, representative set of parameters for each planet.
 
-Data are pulled from the NASA Exoplanet Archive **PSCompPars** (Planetary Systems Composite Parameters) table via the [TAP service](https://exoplanetarchive.ipac.caltech.edu/docs/TAP/usingTAP.html). This table provides one row per confirmed planet, drawing parameters from the best available published reference for each quantity. Parameters for a given planet may therefore come from different papers and are not guaranteed to be internally self-consistent.
+### Weighting
+To address the goal of identifying structural breaks without the noise of low-quality data or model-derived values, a normalized weighting system ($0.0$ to $1.0$) is applied to each measurement (mass, radius, and density).
 
-The query filters for rows where (mass is non-null) AND (radius is non-null) AND density is non-null. Either Jupiter OR Earth units are acceptable for mass and radius. Note that the archive calculates density from mass and radius (assuming a spherical planet) when no directly measured density is available; such rows are flagged as "Calculated Value" in the `pl_dens_reflink` column, which is not included in this dataset but can be retrieved separately if needed.
+The weight is calculated using a two-stage process:
 
-**Radius columns:** `pl_radj` and `pl_rade` represent the transit radius — the planet radius inferred from the fractional dimming of the host star during transit. For non-transiting planets, this is derived from a mass-radius relation (Chen & Kipping 2017). The reference unit for Jupiter radii is the equatorial radius at the 1-bar pressure level; the exact value used varies by source paper and is not standardised across the archive.
+1.  **Provenance Factor:** Direct measurements (e.g., Radial Velocity mass or Transit radius) are given a base weight of $1.0$. Entries derived from a mass-radius relationship (e.g., Chen & Kipping) or listed simply as $M\sin(i)$ without an inclination are penalized with a base weight of $0.0$ or $0.1$ to prevent them from skewing the power-law regression.
+
+2.  **Precision Factor:** An exponential decay function is applied to the relative error ($\delta = \sigma/v$):
+    $$W = W_{base} \cdot e^{-\delta}$$
+    This ensures that points with high relative uncertainty fade naturally, while those with high precision (low $\sigma$) maintain a weight close to $1.0$.
 
 ### Surface gravity
-
-Surface gravity is computed from first principles:
-
-```math
-g = G · M / R²
-```
-
-where:
-
-- `M = pl_bmassj × M_Jup` (kg)
-- `R = pl_radj × R_Jup` (m)
-- `G = 6.67430 × 10⁻¹¹ m³ kg⁻¹ s⁻²`
-- `M_Jup = 1.89813 × 10²⁷ kg`
-- `R_Jup = 7.14920 × 10⁷ m`
-
-Uncertainty is propagated from the retreved data assuming independent mass and radius errors, using asymmetric uncertainties direct from the data.
-
-Results are reported in both m/s² and Earth gravities (g_Earth = 9.80665 m/s²).
+Surface gravity ($g$) is calculated using the standard Newtonian formula:
+$$g = \frac{G \cdot M}{R^2}$$
+where $M$ is the computed mass in kg and $R$ is the computed radius in meters.
 
 ### Durand-Manterola classification
+Planets are categorized into three classes based on their mass ($M$):
+- **Class A:** $M < 5 \times 10^{25}$ kg (Earth-like/Super-Earths)
+- **Class B:** $5 \times 10^{25} \text{ kg} \le M < 1 \times 10^{27}$ kg (Neptune-like/Sub-Saturns)
+- **Class C:** $M \ge 1 \times 10^{27}$ kg (Gas Giants/Brown Dwarfs)
 
-Planets are assigned to one of three classes based on the empirical classification of Durand-Manterola (2011), who fitted power laws to radius, mean density, and surface gravity as functions of mass across 118 Solar System and transiting exoplanet bodies.
+---
 
-| Class | Mass range           | Approximate equivalent               | Representative members       |
-|-------|----------------------|--------------------------------------|------------------------------|
-| A     | M < 5×10²⁵ kg        | < ~0.026 M_Jup / ~8.3 M_Earth        | Earth, rocky super-Earths    |
-| B     | 5×10²⁵ ≤ M < 10²⁷ kg | ~0.026–0.53 M_Jup / ~8.3–167 M_Earth | Neptune, Saturn, sub-Jovians |
-| C     | M ≥ 10²⁷ kg          | > ~0.53 M_Jup                        | Jupiter, hot Jupiters        |
+## Visualization
 
-Class A planets have increasing radius, density, and surface gravity with mass. Class B planets have increasing radius but *decreasing* density and surface gravity — a consequence of volatile (H/He) accretion dominating mass gain once escape velocity is sufficient. Class C planets have nearly constant radius despite increasing mass, due to internal compression into denser phases.
+The script generates high-resolution scatter plots (e.g., Mass vs. Radius) using a **Reliability Color Space** to visually represent the $\u2A40$ intersection of data confidence:
 
-For each planet, the script also computes the **predicted surface gravity** from the class-specific power laws (equations 4a–4c of Durand-Manterola 2011):
-
-| Class | Power law              |
-|-------|------------------------|
-| A     | g = 2×10⁻¹⁰ × M^0.4282 |
-| B     | g = 14937 × M^−0.1219  |
-| C     | g = 4×10⁻²⁸ × M^1.0482 |
-
-where M is in kg and g is in m/s². The **DM Grav. Residual** column gives the difference between the computed and predicted surface gravity in g_Earth units; large residuals flag planets that deviate significantly from the 2011 population trends, which may reflect updated measurements, unusual compositions, or boundary classification ambiguity.
+* **Dual-Gradient Error Crosses:** * **Horizontal Bars:** Transition from White ($0.0$) to Red ($1.0$) based on the $x$-axis weighting.
+    * **Vertical Bars:** Transition from White ($0.0$) to Blue ($1.0$) based on the $y$-axis weighting.
+* **Scatter Points:**
+    * The central dots use additive mixing: Red (X-weight) + Blue (Y-weight) = Purple.
+    * The opacity (alpha) of the dot is the **arithmetic mean** of the two weights.
+* **Weight Distribution Insets:** Small bar charts in the upper-left display decile distributions for both weightings, allowing for immediate assessment of dataset quality and the prevalence of model-contaminated points.
 
 ---
 
@@ -214,24 +186,17 @@ The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can b
 
 ### Figure 1. Mass vs. Radius
 
-| Unfiltered, showing Chen & Kipping piecewise power law artefact              | Filtered                                                               |
-|------------------------------------------------------------------------------|------------------------------------------------------------------------|
-| 6,018 records                                                                | 1,654 records                                                          |
-| ![Mass vs. Radius, unfiltered](data/mass-vs-radius.example_not_filtered.png) | ![Mass vs. Radius, filtered](data/mass-vs-radius.example_filtered.png) |
+| Unfiltered, showing Chen & Kipping piecewise power law artefact                         | Filtered                                                                          |
+|-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| 6,018 records                                                                           | 1,654 records                                                                     |
+| ![Mass vs. Radius, unfiltered](data/pscomppars-mass-vs-radius.example_not_filtered.png) | ![Mass vs. Radius, filtered](data/pscomppars-mass-vs-radius.example_filtered.png) |
 
 ### Figure 2. Mass vs. Density
 
-| Unfiltered, showing Chen & Kipping piecewise power law artefact                | Filtered                                                                 |
-|--------------------------------------------------------------------------------|--------------------------------------------------------------------------|
-| 6,018 records                                                                  | 1,487 records                                                            |
-| ![Mass vs. Density, unfiltered](data/mass-vs-density.example_not_filtered.png) | ![Mass vs. Density, filtered](data/mass-vs-density.example_filtered.png) |
-
-### Figure 3. Mass vs. Surface Gravity
-
-| Unfiltered, showing Chen & Kipping piecewise power law artefact                                | Filtered                                                                                 |
-|------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
-| 6,018 records                                                                                  | 1,654 records                                                                            |
-| ![Mass vs. Surface Gravity, unfiltered](data/mass-vs-surface-gravity.example_not_filtered.png) | ![Mass vs. Surface Gravity, filtered](data/mass-vs-surface-gravity.example_filtered.png) |
+| Unfiltered, showing Chen & Kipping piecewise power law artefact                           | Filtered                                                                            |
+|-------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| 6,018 records                                                                             | 1,487 records                                                                       |
+| ![Mass vs. Density, unfiltered](data/pscomppars-mass-vs-density.example_not_filtered.png) | ![Mass vs. Density, filtered](data/pscomppars-mass-vs-density.example_filtered.png) |
 
 ---
 

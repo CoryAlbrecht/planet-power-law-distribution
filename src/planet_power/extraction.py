@@ -7,8 +7,14 @@ from typing import Any, cast
 
 import pandas as pd
 
-from planet_power.constants import DATA_DIR
-from planet_power.format import format_workbook
+from planet_power.constants import (
+    COMPUTED_DATA_FILE_TEMPLATE,
+    DATA_DIR,
+    RAW_DATA_FILE_TEMPLATE,
+)
+
+# from planet_power.format import format_workbook
+from planet_power.helpers import get_latest_datafile
 from planet_power.visualization import save_scatter_png
 
 
@@ -54,9 +60,79 @@ def apply_filter_rules(
     return df[mask]
 
 
-def create_split_files(
-    df: pd.DataFrame,
+def combine_and_extract_and_graph(
+    columns: list[str] | None,
+    x_col: str,
+    x_err_plus_col: str,
+    x_err_minus_col: str,
+    y_col: str,
+    y_err_plus_col: str,
+    y_err_minus_col: str,
+    x_weight_col: str | None = None,
+    y_weight_col: str | None = None,
     filter_rules: list[tuple[str, str]] | None = None,
+    stem: str | None = None,
+    table: str = "ps",
+    tag: str = "",
+) -> pd.DataFrame | None:
+    if columns is None:
+        print(f"No columns were given to extract from data for scatter plot values.")
+        return None
+    if stem is None:
+        print(f"No file base name given to save scatter plot values as.")
+        return None
+
+    raw_data_file = os.path.join(
+        DATA_DIR,
+        RAW_DATA_FILE_TEMPLATE.replace("%t", table).replace(
+            "%T", f".{tag}" if tag != "" else ""
+        ),
+    )
+    df = pd.read_csv(raw_data_file, encoding="utf-8")
+    cols_from_df = [c for c in columns if c in df.columns]
+    df_subset = df[["pl_name"] + cols_from_df].copy()
+
+    extras_data_file = os.path.join(
+        DATA_DIR,
+        COMPUTED_DATA_FILE_TEMPLATE.replace("%t", table).replace(
+            "%T", f".{tag}" if tag != "" else ""
+        ),
+    )
+    df_extras = pd.read_csv(extras_data_file, encoding="utf-8")
+    cols_from_extras = [c for c in columns if c in df_extras.columns]
+    df_extras_subset = df_extras[["pl_name"] + cols_from_extras].copy()
+
+    df_combined = pd.merge(df_subset, df_extras_subset, on="pl_name", how="inner")
+
+    out_file = os.path.join(
+        DATA_DIR, f"{table}-{stem}{'.'+tag if tag != '' else ''}.csv"
+    )
+    df_combined.to_csv(out_file, index=False, quoting=1, encoding="utf-8")
+    out_png = os.path.join(
+        DATA_DIR, f"{table}-{stem}{'.'+tag if tag != '' else ''}.png"
+    )
+    df_filtered = apply_filter_rules(df_combined, filter_rules)
+    print(f" Combined: {len(df_combined)} rows, Filtered: {len(df_filtered)} rows.")
+    save_scatter_png(
+        df_filtered,
+        out_png,
+        x_col=x_col,
+        x_err_plus_col=x_err_plus_col,
+        x_err_minus_col=x_err_minus_col,
+        x_weight_col=x_weight_col,
+        y_col=y_col,
+        y_err_plus_col=y_err_plus_col,
+        y_err_minus_col=y_err_minus_col,
+        y_weight_col=y_weight_col,
+        error_cross=True,
+    )
+    print(f"Saved scatter plot to {out_png}")
+    return df_combined
+
+
+def create_split_files(
+    filter_rules: list[tuple[str, str]] | None = None,
+    table: str = "ps",
     tag: str = "",
 ) -> None:
     """
@@ -72,72 +148,73 @@ def create_split_files(
     tag : Optional tag appended to output filenames, e.g. "filtered" produces
         mass-vs-radius.filtered.xlsx. Empty string produces no tag.
     """
+    existing = get_latest_datafile(table=table, tag=tag)
+    if not existing:
+        parser.error(
+            "--split requires --retrieve when no existing exoplanet_data file found"
+        )
+        return
+    latest = existing[0]
+    print(f"Using existing {os.path.basename(latest)}")
+    df = pd.read_csv(latest, encoding="utf-8")  # type: ignore[reportUnknownMemberType]
+
     splits: list[dict[str, Any]] = [
         {
             "stem": "mass-vs-radius",
             "cols": [
                 "pl_name",
-                "ppld_mass_kg",
-                "ppld_mass_kg_err1",
-                "ppld_mass_kg_err2",
-                "pl_bmassj_reflink",
-                "pl_bmasse_reflink",
-                "ppld_radius_m",
-                "ppld_radius_m_err1",
-                "ppld_radius_m_err2",
-                "pl_radj_reflink",
-                "pl_rade_reflink",
+                "pl_massj",
+                "pl_massjerr1",
+                "pl_massjerr2",
+                "pl_radj",
+                "pl_radjerr1",
+                "pl_radjerr2",
             ],
-            "x_col": "ppld_mass_kg",
-            "x_err_plus_col": "ppld_mass_kg_err1",
-            "x_err_minus_col": "ppld_mass_kg_err2",
-            "y_col": "ppld_radius_m",
-            "y_err_plus_col": "ppld_radius_m_err1",
-            "y_err_minus_col": "ppld_radius_m_err2",
+            "x_col": "pl_massj",
+            "x_err_plus_col": "pl_massjerr1",
+            "x_err_minus_col": "pl_massjerr2",
+            "y_col": "pl_radj",
+            "y_err_plus_col": "pl_radjerr1",
+            "y_err_minus_col": "pl_radjerr2",
         },
         {
             "stem": "mass-vs-density",
             "cols": [
                 "pl_name",
-                "ppld_mass_kg",
-                "ppld_mass_kg_err1",
-                "ppld_mass_kg_err2",
-                "pl_bmassj_reflink",
-                "pl_bmasse_reflink",
+                "pl_massj",
+                "pl_massjerr1",
+                "pl_massjerr2",
                 "pl_dens",
                 "pl_denserr1",
                 "pl_denserr2",
-                "pl_dens_reflink",
             ],
-            "x_col": "ppld_mass_kg",
-            "x_err_plus_col": "ppld_mass_kg_err1",
-            "x_err_minus_col": "ppld_mass_kg_err2",
+            "x_col": "pl_massj",
+            "x_err_plus_col": "pl_massjerr1",
+            "x_err_minus_col": "pl_massjerr2",
             "y_col": "pl_dens",
             "y_err_plus_col": "pl_denserr1",
             "y_err_minus_col": "pl_denserr2",
         },
-        {
-            "stem": "mass-vs-surface-gravity",
-            "cols": [
-                "pl_name",
-                "ppld_mass_kg",
-                "ppld_mass_kg_err1",
-                "ppld_mass_kg_err2",
-                "pl_bmassj_reflink",
-                "pl_bmasse_reflink",
-                "ppld_surf_grav_ms2",
-                "ppld_surf_grav_ms2_err1",
-                "ppld_surf_grav_ms2_err2",
-                "pl_radj_reflink",
-                "pl_rade_reflink",
-            ],
-            "x_col": "ppld_mass_kg",
-            "x_err_plus_col": "ppld_mass_kg_err1",
-            "x_err_minus_col": "ppld_mass_kg_err2",
-            "y_col": "ppld_surf_grav_ms2",
-            "y_err_plus_col": "ppld_surf_grav_ms2_err1",
-            "y_err_minus_col": "ppld_surf_grav_ms2_err2",
-        },
+        # {
+        #     "stem": "mass-vs-surface-gravity",
+        #     "cols": [
+        #         "pl_name",
+        #         "pl_massj",
+        #         "pl_massjerr1",
+        #         "pl_massjerr2",
+        #         "ppld_surf_grav_ms2",
+        #         "ppld_surf_grav_ms2_err1",
+        #         "ppld_surf_grav_ms2_err2",
+        #         "pl_radj_reflink",
+        #         "pl_rade_reflink",
+        #     ],
+        #     "x_col": "pl_massj",
+        #     "x_err_plus_col": "pl_massjerr1",
+        #     "x_err_minus_col": "pl_massjerr2",
+        #     "y_col": "ppld_surf_grav_ms2",
+        #     "y_err_plus_col": "ppld_surf_grav_ms2_err1",
+        #     "y_err_minus_col": "ppld_surf_grav_ms2_err2",
+        # },
     ]
 
     for split in splits:
@@ -150,11 +227,11 @@ def create_split_files(
             )
         base_path = os.path.join(
             DATA_DIR,
-            f"{split['stem']}{f'.{tag}' if tag else ''}",
+            f"{split['stem']}-{table}-{f'.{tag}' if tag else ''}",
         )
-        df_filtered.to_excel(f"{base_path}.xlsx", index=False, engine="openpyxl")  # type: ignore[reportUnknownMemberType]
+        # df_filtered.to_excel(f"{base_path}.xlsx", index=False, engine="openpyxl")  # type: ignore[reportUnknownMemberType]
         df_filtered.to_csv(f"{base_path}.csv", index=False, quoting=1, encoding="utf-8")  # type: ignore[reportUnknownMemberType]
-        format_workbook(f"{base_path}.xlsx", len(df_split))
+        # format_workbook(f"{base_path}.xlsx", len(df_split))
 
         save_scatter_png(
             df=df_filtered,
