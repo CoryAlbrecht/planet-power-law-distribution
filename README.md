@@ -188,14 +188,14 @@ The data that has the string `CALCULATED_VALUE` in the `*_reflink` columns can b
 
 | Unfiltered, showing Chen & Kipping piecewise power law artefact                         | Filtered                                                                          |
 |-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
-| 6,018 records                                                                           | 1,654 records                                                                     |
+| 6,020 records                                                                           | 3,158 records                                                                     |
 | ![Mass vs. Radius, unfiltered](data/pscomppars-mass-vs-radius.example_not_filtered.png) | ![Mass vs. Radius, filtered](data/pscomppars-mass-vs-radius.example_filtered.png) |
 
 ### Figure 2. Mass vs. Density
 
 | Unfiltered, showing Chen & Kipping piecewise power law artefact                           | Filtered                                                                            |
 |-------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| 6,018 records                                                                             | 1,487 records                                                                       |
+| 6,020 records                                                                             | 3,158 records                                                                       |
 | ![Mass vs. Density, unfiltered](data/pscomppars-mass-vs-density.example_not_filtered.png) | ![Mass vs. Density, filtered](data/pscomppars-mass-vs-density.example_filtered.png) |
 
 ---
