@@ -27,7 +27,7 @@ def _validate_tag(tag: str) -> str:
 def main() -> None:
     """Main entry point for the CLI."""
     print(
-        f"planet-power v{version("planet-power-law-distribution")} - Investigating classification of exoplanets"
+        f"planet-power v{version('planet-power-law-distribution')} - Investigating classification of exoplanets"
     )
     print()
     parser = argparse.ArgumentParser(
@@ -177,6 +177,7 @@ def main() -> None:
             y_err_plus_col="ppld_radius_m_err1",
             y_err_minus_col="ppld_radius_m_err2",
             y_weight_col="ppld_radius_weight",
+            error_cross=False,
         )
         combine_and_extract_and_graph(
             columns=columns_list,
@@ -192,6 +193,7 @@ def main() -> None:
             y_err_plus_col="pl_denserr1",
             y_err_minus_col="pl_denserr2",
             y_weight_col="ppld_density_weight",
+            error_cross=False,
         )
 
     # if df is not None:

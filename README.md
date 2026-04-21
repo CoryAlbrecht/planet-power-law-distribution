@@ -120,15 +120,41 @@ All output data ends up in the `./data` directory.
 The script utilizes the NASA Exoplanet Archive TAP service to retrieve the `pscomppars` (Planetary Systems Composite Parameters) table. This table is preferred as it provides a single, representative set of parameters for each planet.
 
 ### Weighting
-To address the goal of identifying structural breaks without the noise of low-quality data or model-derived values, a normalized weighting system ($0.0$ to $1.0$) is applied to each measurement (mass, radius, and density).
 
-The weight is calculated using a two-stage process:
+To address the goal of identifying structural breaks without the noise of low-quality data or model-derived values, a normalized weighting system ($0.0$ to $1.0$) is applied to each measurement. The weight is the product of two independent factors, each capturing a different aspect of data quality.
 
-1.  **Provenance Factor:** Direct measurements (e.g., Radial Velocity mass or Transit radius) are given a base weight of $1.0$. Entries derived from a mass-radius relationship (e.g., Chen & Kipping (2017)) or listed simply as $M\sin(i)$ without an inclination are penalized with a base weight of $0.0$ or $0.1$ to prevent them from skewing the power-law regression.
+#### 1. Provenance factor ($W_{prov}$)
 
-2.  **Precision Factor:** An exponential decay function is applied to the relative error ($\delta = \sigma/v$):
-    $$W = W_{base} \cdot e^{-\delta}$$
-    This ensures that points with high relative uncertainty fade naturally, while those with high precision (low $\sigma$) maintain a weight close to $1.0$.
+For mass, the archive's `pl_bmassprov` column records how the best-mass estimate was obtained. The provenance factor penalises measurement types that are less reliable for population-level power-law fitting:
+
+| Provenance         | $W_{prov}$ | Notes                                         |
+|--------------------|------------|-----------------------------------------------|
+| `Mass`             | 1.0        | True mass from inclination-resolved orbit     |
+| `Msin(i)/sin(i)`   | 1.0        | Inclination known; true mass recovered        |
+| `Msini`            | 0.2        | Lower bound only; inclination unknown         |
+| `M-R relationship` | 0.0        | Fully model-derived via Chen & Kipping (2017) |
+| Unknown / missing  | 0.1        | Conservative fallback                         |
+
+Radius and density do not have an equivalent provenance column in the archive, so their provenance factor defaults to $1.0$ and the weight is determined entirely by the precision factor and error completeness below.
+
+#### 2. Error completeness penalty
+
+If both error bars are present, no additional penalty is applied. If only one error bar exists, $W_{prov}$ is multiplied by $0.6$ before the precision factor is computed — separating the question of *whether* the uncertainty is fully characterised from *how large* it is. If neither error bar is present, the function returns $W_{prov} × 0.1$ immediately as a heavy penalty.
+
+#### 3. Precision factor ($W_{prec}$)
+
+An exponential decay is applied to the relative uncertainty $\delta = \sigma / v$, where $\sigma$ is the mean of the available absolute error bars and $v$ is the measured value:
+
+$$W_{prec} = e^{-\delta}$$
+
+This ensures that points with high relative uncertainty fade naturally while those with small errors relative to their value retain a weight close to $1.0$. Note that $\sigma$ is computed as the mean of whichever error bars exist — the completeness penalty above handles the asymmetry separately rather than folding it into $\sigma$.
+
+#### Combined weight
+
+$$W = \mathrm{clip}\left(W_{prov} \cdot W_{prec},\ 0,\ 1
+ight)$$
+
+This weighting scheme is a custom quality indicator designed for visual encoding and exploratory filtering. It is **not** equivalent to the inverse-variance weights ($1/\sigma^2$) used in standard astronomical regression tools such as `linmix` or `scipy.odr`. If these weights are passed to a fitting routine, they should be converted or the distinction documented clearly.
 
 ### Surface gravity
 Surface gravity ($g$) is calculated using the standard Newtonian formula:
