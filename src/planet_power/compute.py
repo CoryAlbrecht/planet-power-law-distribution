@@ -34,7 +34,7 @@ def calculate_astrophysical_weight(
         prov_matrix = {
             "Mass": 1.0,
             "Msin(i)/sin(i)": 1.0,
-            "Msin(i)": 0.0,
+            "Msini": 0.2,
             "M-R relationship": 0.0,
         }
         w_base = prov_matrix.get(provenance, 0.1)
@@ -53,7 +53,9 @@ def calculate_astrophysical_weight(
 
     # 3. Calculate Relative Error (Precision Factor)
     # Use the absolute average of available errors
-    sigma = np.nanmean([np.abs(err_plus), np.abs(err_minus)])
+    # sigma = np.nanmean([np.abs(err_plus), np.abs(err_minus)])
+    vals = [np.abs(v) for v in [err_plus, err_minus] if v is not None]
+    sigma = sum(vals) / len(vals)
 
     if value <= 0 or pd.isna(sigma):
         return 0.0

@@ -70,6 +70,7 @@ def combine_and_extract_and_graph(
     y_err_minus_col: str,
     x_weight_col: str | None = None,
     y_weight_col: str | None = None,
+    error_cross: bool = False,
     filter_rules: list[tuple[str, str]] | None = None,
     stem: str | None = None,
     table: str = "ps",
@@ -124,7 +125,7 @@ def combine_and_extract_and_graph(
         y_err_plus_col=y_err_plus_col,
         y_err_minus_col=y_err_minus_col,
         y_weight_col=y_weight_col,
-        error_cross=True,
+        error_cross=error_cross,
     )
     print(f"Saved scatter plot to {out_png}")
     return df_combined
