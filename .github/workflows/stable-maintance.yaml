@@ -1,0 +1,45 @@
+name: Stable Maintenance Release
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Weekly at midnight Sunday
+  workflow_dispatch: # Allows you to trigger it manually via GitHub UI
+
+jobs:
+  update-stable:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        # List your stable branches here
+        branch: [version-0.1.0]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.branch }}
+          fetch-depth: 0
+
+      - name: Check for new commits
+        id: check
+        run: |
+          # Check if any commits happened in the last 7 days
+          if [ $(git log --since="7 days ago" | wc -l) -gt 0 ]; then
+            echo "CHANGED=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract version
+        if: steps.check.outputs.CHANGED == 'true'
+        id: vars
+        run: echo "VERSION=${{ matrix.branch }}" | sed 's/version-//' >> $GITHUB_OUTPUT
+
+      - name: Update Stable Release
+        if: steps.check.outputs.CHANGED == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.vars.outputs.VERSION }}
+          name: "v${{ steps.vars.outputs.VERSION }} (Maintenance)"
+          body: "Weekly maintenance update for stable branch ${{ matrix.branch }}."
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
