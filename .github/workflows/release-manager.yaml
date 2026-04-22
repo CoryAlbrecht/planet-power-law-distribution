@@ -1,0 +1,51 @@
+name: Release Manager
+on:
+  push:
+    branches: ['version-*']
+  schedule:
+    - cron: '0 0 * * 0' # Weekly check for stable branches
+  workflow_dispatch:
+
+jobs:
+  manage-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Parse Version from pyproject.toml
+        id: parse_version
+        run: |
+          # Extracts version = "X.Y.Z" from pyproject.toml
+          V=$(grep -m 1 "version =" pyproject.toml | cut -d '"' -f 2)
+          echo "V_NUMBER=$V" >> $GITHUB_OUTPUT
+
+          if [[ "$V" == *"-dev"* ]] || [[ "$V" == *"-unstable"* ]]; then
+            echo "STATUS=unstable" >> $GITHUB_OUTPUT
+          else
+            echo "STATUS=stable" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Handle Unstable Release
+        if: steps.parse_version.outputs.STATUS == 'unstable' && github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.parse_version.outputs.V_NUMBER }}
+          name: "v${{ steps.parse_version.outputs.V_NUMBER }} (Rolling)"
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Handle Stable Release
+        if: steps.parse_version.outputs.STATUS == 'stable'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.parse_version.outputs.V_NUMBER }}
+          name: "v${{ steps.parse_version.outputs.V_NUMBER }}"
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
