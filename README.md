@@ -7,7 +7,6 @@ A Python script that queries the [NASA Exoplanet Archive](https://exoplanetarchi
 ## Contents
 
 - [Quickstart](#quickstart)
-- [Output](#output)
 - [Methodology](#methodology)
   - [Data source](#data-source)
   - [Weighting](#weighting)
@@ -97,16 +96,16 @@ No API key is required. The script queries NASA's public TAP service directly.
 
 ## CLI Options
 
-| Option | Description | Output |
-|--------|-------------|--------|
-| `-r`, `--retrieve`                                          | Fetch data from NASA Exoplanet Archive                                                                                                                                                                                                                          | CSV
-| `-R`, `--refresh`                                           | Force refresh of raw data from NASA Exoplanet Archive                                                                                                                                                                                                           | CSV
-| `-C`, `--compute`                                           | Create extra CSV file with computed values not in the NASA Exoplanet Archive data                                                                                                                                                                               | CSV
-| `-s`, `--split`                                             | Create split files for scatter plots                                                                                                                                                                                                                            | CSV, PNG
-| `-f COLUMN:REGEX`, `--filter COLUMN:REGEX`                  | Filter out rows where COLUMN matches REGEX (can be used multiple times)                                                                                                                                                                                         |  |
-| `-t TAG`, `--tag TAG`                                       | Tag to append to split output filenames                                                                                                                                                                                                                         |  |
-| `-c COLUMN\|~REGEX\|@FILE`,`--column COLUMN\|~REGEX\|@FILE` | Choose columns for fetching or splitting <ul><li>If the value starts with a ~ it is a reguar expression</li><li>If the value starts with a @ it is a text file with one value per line, no nesting</li><li>Otherwise it is the exact name of a column</li></ul> |
-| `--help-columns`                                            | List out all avaiable columns                                                                                                                                                                                                                                   |  |
+| Option                                                      | Description                                                                                                                                                                                                                                                     | Output   |
+|-------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
+| `-r`, `--retrieve`                                          | Fetch data from NASA Exoplanet Archive                                                                                                                                                                                                                          | CSV      |
+| `-R`, `--refresh`                                           | Force refresh of raw data from NASA Exoplanet Archive                                                                                                                                                                                                           | CSV      |
+| `-C`, `--compute`                                           | Create extra CSV file with computed values not in the NASA Exoplanet Archive data                                                                                                                                                                               | CSV      |
+| `-s`, `--split`                                             | Create split files for scatter plots                                                                                                                                                                                                                            | CSV, PNG |
+| `-f COLUMN:REGEX`, `--filter COLUMN:REGEX`                  | Filter out rows where COLUMN matches REGEX (can be used multiple times)                                                                                                                                                                                         |          |
+| `-t TAG`, `--tag TAG`                                       | Tag to append to split output filenames                                                                                                                                                                                                                         |          |
+| `-c COLUMN\|~REGEX\|@FILE`,`--column COLUMN\|~REGEX\|@FILE` | Choose columns for fetching or splitting <ul><li>If the value starts with a ~ it is a reguar expression</li><li>If the value starts with a @ it is a text file with one value per line, no nesting</li><li>Otherwise it is the exact name of a column</li></ul> |          |
+| `--help-columns`                                            | List out all avaiable columns                                                                                                                                                                                                                                   |          |
 
 All output data ends up in the `./data` directory.
 
@@ -117,6 +116,7 @@ All output data ends up in the `./data` directory.
 ## Methodology
 
 ### Data source
+
 The script utilizes the NASA Exoplanet Archive TAP service to retrieve the `pscomppars` (Planetary Systems Composite Parameters) table. This table is preferred as it provides a single, representative set of parameters for each planet.
 
 ### Weighting
@@ -151,18 +151,20 @@ This ensures that points with high relative uncertainty fade naturally while tho
 
 #### Combined weight
 
-$$W = \mathrm{clip}\left(W_{prov} \cdot W_{prec},\ 0,\ 1
-ight)$$
+$$W = \mathrm{clip}\left(W_{prov} \cdot W_{prec},\ 0,\ 1\right)$$
 
 This weighting scheme is a custom quality indicator designed for visual encoding and exploratory filtering. It is **not** equivalent to the inverse-variance weights ($1/\sigma^2$) used in standard astronomical regression tools such as `linmix` or `scipy.odr`. If these weights are passed to a fitting routine, they should be converted or the distinction documented clearly.
 
 ### Surface gravity
+
 Surface gravity ($g$) is calculated using the standard Newtonian formula:
 $$g = \frac{G \cdot M}{R^2}$$
 where $M$ is the computed mass in kg and $R$ is the computed radius in meters.
 
 ### Durand-Manterola classification
+
 Planets are categorized into three classes based on their mass ($M$):
+
 - **Class A:** $M < 5 \times 10^{25}$ kg (Earth-like/Super-Earths)
 - **Class B:** $5 \times 10^{25} \text{ kg} \le M < 1 \times 10^{27}$ kg (Neptune-like/Sub-Saturns)
 - **Class C:** $M \ge 1 \times 10^{27}$ kg (Gas Giants/Brown Dwarfs)
@@ -173,12 +175,12 @@ Planets are categorized into three classes based on their mass ($M$):
 
 The script generates high-resolution scatter plots (e.g., Mass vs. Radius) using a **Reliability Color Space** to visually represent the $\u2A40$ intersection of data confidence:
 
-* **Dual-Gradient Error Crosses:** * **Horizontal Bars:** Transition from White ($0.0$) to Red ($1.0$) based on the $x$-axis weighting.
-    * **Vertical Bars:** Transition from White ($0.0$) to Blue ($1.0$) based on the $y$-axis weighting.
-* **Scatter Points:**
-    * The central dots use additive mixing: Red (X-weight) + Blue (Y-weight) = Purple.
-    * The opacity (alpha) of the dot is the **arithmetic mean** of the two weights.
-* **Weight Distribution Insets:** Small bar charts in the upper-left display decile distributions for both weightings, allowing for immediate assessment of dataset quality and the prevalence of model-contaminated points.
+- **Dual-Gradient Error Crosses:** * **Horizontal Bars:** Transition from White ($0.0$) to Red ($1.0$) based on the $x$-axis weighting.
+  - **Vertical Bars:** Transition from White ($0.0$) to Blue ($1.0$) based on the $y$-axis weighting.
+- **Scatter Points:**
+  - The central dots use additive mixing: Red (X-weight) + Blue (Y-weight) = Purple.
+  - The opacity (alpha) of the dot is the **arithmetic mean** of the two weights.
+- **Weight Distribution Insets:** Small bar charts in the upper-left display decile distributions for both weightings, allowing for immediate assessment of dataset quality and the prevalence of model-contaminated points.
 
 ---
 
@@ -214,17 +216,17 @@ The Exoplanet Archive data has the `pl_bmassprov` column, which means exoplanet 
 
 ### Figure 1. Mass vs. Radius
 
-| Unfiltered, showing Chen & Kipping piecewise power law artefact                         | Filtered                                                                          | Filtered More
-|-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|---|
-| 6,020 records                                                                           | 3,158 records                                                                     | 1,656 |
+| Unfiltered, showing Chen & Kipping piecewise power law artefact                         | Filtered                                                                          | Filtered More                                                                          |
+|-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| 6,020 records                                                                           | 3,158 records                                                                     | 1,656                                                                                  |
 | ![Mass vs. Radius, unfiltered](data/pscomppars-mass-vs-radius.example_not_filtered.png) | ![Mass vs. Radius, filtered](data/pscomppars-mass-vs-radius.example_filtered.png) | ![Mass vs. Radius, filtered](data/pscomppars-mass-vs-radius.example_filtered_more.png) |
 
 ### Figure 2. Mass vs. Density
 
-| Unfiltered, showing Chen & Kipping piecewise power law artefact | Filtered      | Filtered More |
-|-----------------------------------------------------------------|---------------|---------------|
-| 6,020 records                                                   | 3,158 records | 1,656         |
-| ![Mass vs. Density, unfiltered](data/pscomppars-mass-vs-density.example_not_filtered.png) | ![Mass vs. Density, filtered](data/pscomppars-mass-vs-density.example_filtered.png) | ![Mass vs. Density, filtered](data/pscomppars-mass-vs-density.example_filtered_more.png)
+| Unfiltered, showing Chen & Kipping piecewise power law artefact                           | Filtered                                                                            | Filtered More                                                                            |
+|-------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| 6,020 records                                                                             | 3,158 records                                                                       | 1,656                                                                                    |
+| ![Mass vs. Density, unfiltered](data/pscomppars-mass-vs-density.example_not_filtered.png) | ![Mass vs. Density, filtered](data/pscomppars-mass-vs-density.example_filtered.png) | ![Mass vs. Density, filtered](data/pscomppars-mass-vs-density.example_filtered_more.png) |
 
 ---
 
