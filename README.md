@@ -153,7 +153,7 @@ This ensures that points with high relative uncertainty fade naturally while tho
 
 $$W = \mathrm{clip}(W_{prov} \cdot W_{prec},\ 0,\ 1)$$
 
-This weighting scheme is a custom quality indicator designed for visual encoding and exploratory filtering. It is **not** equivalent to the inverse-variance weights ($1/\sigma^2$) used in standard astronomical regression tools such as `linmix` or `scipy.odr`. If these weights are passed to a fitting routine, they should be converted or the distinction documented clearly.
+This weighting scheme is a custom one and is close to but not exactly the same as the inverse-variance weights ($1/\sigma^2$) used in standard astronomical regression tools such as `linmix` or `scipy.odr`. It is designed to take into account not only the provenance information in the **Exoplanet Archive** data, but also that both positive and negative errors might not be supplied.
 
 ### Surface gravity
 
