@@ -11,7 +11,7 @@ jobs:
       contents: write
     strategy:
       matrix:
-        # List your stable branches here
+        # List your stable branches right here
         branch: [version-0.1.0]
     steps:
       - uses: actions/checkout@v4
