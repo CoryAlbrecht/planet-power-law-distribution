@@ -29,5 +29,8 @@
   },
   "peacock.color": "#73be6a",
   "editor.defaultFormatter": "ms-python.black-formatter",
-  "isort.check": true
+  "isort.check": true,
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  }
 }
