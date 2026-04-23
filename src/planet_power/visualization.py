@@ -69,9 +69,9 @@ def save_scatter_png(
     y_axis_min: float | None = None,
     y_axis_max: float | None = None,
     default_color: str = "#02BEFD",
-    width_px: int = 1920,
-    height_px: int = 1080,
-    dpi: int = 100,
+    width_px: int = 3840,
+    height_px: int = 2160,
+    dpi: int = 150,
     error_cross: bool = False,
 ) -> None:
     """

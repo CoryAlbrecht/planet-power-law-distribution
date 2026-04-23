@@ -172,6 +172,9 @@ def main() -> None:
             y_hexcolor="#0000ff",
             y_axis_min=1e05,
             y_axis_max=1e09,
+            width_px=3840,
+            height_px=2160,
+            dpi=150,
             error_cross=False,
         )
         combine_and_extract_and_graph(
