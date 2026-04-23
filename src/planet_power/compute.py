@@ -59,7 +59,7 @@ def calculate_astrophysical_weight(
     vals = [np.abs(v) for v in [err_plus, err_minus] if v is not None]
     sigma = sum(vals) / len(vals)
 
-    if value <= 0 or pd.isna(sigma):
+    if value < 0 or pd.isna(sigma):
         return 0.0
 
     rel_error = sigma / value
