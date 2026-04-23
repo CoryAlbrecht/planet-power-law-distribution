@@ -112,6 +112,13 @@ Result: The automation will run, see that the version is still "0.1.0" (Stable),
 | Push to `X.Y.Z` | `STATUS=stable`                 | Updates/Creates Full Release (Latest)        |
 | Sunday Midnight | Checks all `version-*` branches | Synchronizes any "missed" pushes to Releases |
 
+| Version String Format | Examples                       | Release Type            |
+|:----------------------|:-------------------------------|:------------------------|
+| **Development**       | `0.3.0.dev0`, `0.3.0-unstable` | **Rolling Pre-release** |
+| **Alpha/Beta**        | `0.3.0a1`, `0.3.0-beta`        | **Rolling Pre-release** |
+| **Release Candidate** | `0.3.0rc1`                     | **Rolling Pre-release** |
+| **Stable**            | `0.3.0`                        | **Latest Release**      |
+
 ## Prohibitions and warnings
 
  - **Do not rename branches** once they have been pushed; this breaks the link to existing GitHub Releases.

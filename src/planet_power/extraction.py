@@ -77,6 +77,9 @@ def combine_and_extract_and_graph(
     y_hexcolor: str = "#00FF00",
     y_axis_min: float | None = None,
     y_axis_max: float | None = None,
+    width_px: int = 3840,
+    height_px: int = 2160,
+    dpi: int = 150,
     error_cross: bool = False,
     filter_rules: list[tuple[str, str]] | None = None,
     stem: str | None = None,
@@ -133,6 +136,9 @@ def combine_and_extract_and_graph(
         y_axis_min=y_axis_min,
         y_axis_max=y_axis_max,
         error_cross=error_cross,
+        width_px=width_px,
+        height_px=height_px,
+        dpi=dpi,
     )
     print(f"Saved scatter plot to {out_png}")
     return df_combined
