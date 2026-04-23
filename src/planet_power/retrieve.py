@@ -13,7 +13,7 @@ from planet_power.constants import (
     DATA_DIR,
     MAX_AGE,
     RAW_DATA_FILE_TEMPLATE,
-    TAP_BASE,
+    EXOPLANET_ARCHIVE_TAP_BASE,
     USUAL_PS_COLUMNS,
     USUAL_PS_WHERE,
     USUAL_PSCOMPPARS_COLUMNS,
@@ -59,7 +59,7 @@ def retrieve_exoplanet_data(
         else:
             print(f"Could not load cached CSV file, so trying to redownload.")
     cols = None
-    if columns is None:
+    if columns is []:
         if pscomppars:
             cols = ",".join(USUAL_PSCOMPPARS_COLUMNS)
         else:
@@ -78,7 +78,7 @@ def retrieve_exoplanet_data(
         f"Querying NASA Exoplanet Archive table '{data_table}' …",
         flush=True,
     )
-    resp = requests.get(TAP_BASE, params=params, timeout=120)
+    resp = requests.get(EXOPLANET_ARCHIVE_TAP_BASE, params=params, timeout=120)
     resp.raise_for_status()
 
     print("Parsing retrieved data …")

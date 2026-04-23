@@ -7,12 +7,16 @@ import os
 import re
 from importlib.metadata import version
 
-import pandas as pd
-
-from planet_power.compute import compute_extras
-from planet_power.constants import DATA_DIR, RAW_DATA_FILE_TEMPLATE
+from planet_power.compute import calculate_extras
+from planet_power.constants import (
+    DATA_DIR,
+    RAW_DATA_FILE_TEMPLATE,
+    CALCULATED_DATA_FILE_TEMPLATE,
+)
 from planet_power.extraction import combine_and_extract_and_graph
 from planet_power.helpers import (
+    combine_csv_files,
+    extract_columns,
     get_column_list,
     list_available_columns,
     load_csv_to_df,
@@ -45,10 +49,10 @@ def main() -> None:
         help="Retrieve data from NASA Exoplanet Archive",
     )
     parser.add_argument(
-        "-C",
-        "--compute",
+        "-c",
+        "--calculate",
         action="store_true",
-        help="Create extra CSV file with computed values not in the NASA Exoplanet Archive data",
+        help="Create extra CSV file with calculated values not in the NASA Exoplanet Archive data",
     )
     parser.add_argument(
         "-s",
@@ -56,6 +60,13 @@ def main() -> None:
         action="store_true",
         help="Create split files: mass-vs-radius, mass-vs-density, mass-vs-surface-gravity",
     )
+    parser.add_argument(
+        "-e",
+        "--extract",
+        action="store_true",
+        help="Combine data files and extract specific columns to a new data file",
+    )
+
     parser.add_argument(
         "-f",
         "--filter",
@@ -66,7 +77,7 @@ def main() -> None:
         help="Filter rows where COLUMN matches REGEX. Can be used multiple times.",
     )
     parser.add_argument(
-        "-c",
+        "-C",
         "--column",
         nargs="+",
         action="append",
@@ -115,9 +126,14 @@ def main() -> None:
 
     # table to use
     data_table = "pscomppars" if args.pscomppars else "ps"
-
+    raw_data_file = os.path.join(
+        DATA_DIR, RAW_DATA_FILE_TEMPLATE.replace("%t", data_table)
+    )
+    calculated_data_file = os.path.join(
+        DATA_DIR, CALCULATED_DATA_FILE_TEMPLATE.replace("%t", data_table)
+    )
     # get the columns
-    columns_list = None if args.column == [] else get_column_list(args.column)
+    columns_list = get_column_list(args.column)
 
     # get the filter rules
     filter_rules: list[tuple[str, str]] = []
@@ -129,7 +145,7 @@ def main() -> None:
         col, pattern = arg.split(":", 1)
         filter_rules.append((col, pattern))
 
-    if not args.retrieve and not args.split and not args.compute:
+    if not args.retrieve and not args.split and not args.extract and not args.compute:
         parser.print_help()
         return
 
@@ -140,19 +156,41 @@ def main() -> None:
             pscomppars=args.pscomppars,
         )
 
-    if args.compute:
+    if args.calculate:
         if df is None:
-            raw_data_file = os.path.join(
-                DATA_DIR, RAW_DATA_FILE_TEMPLATE.replace("%t", data_table)
-            )
             df = load_csv_to_df(csv_file=raw_data_file, encoding="utf-8")
         if df is not None:
-            compute_extras(df, data_table=data_table)
+            df_extras = calculate_extras(df, data_table=data_table)
+            success = save_df_to_csv(df_extras, calculated_data_file)
+            if success:
+                print(
+                    f"Calculated extra data saved to '{os.path.relpath(calculated_data_file)}'."
+                )
+            else:
+                print(
+                    f"Error! Could not save calculated extra data to '{os.path.relpath(calculated_data_file)}'."
+                )
         else:
             print(f"Unable to load file '{raw_data_file}'.")
 
+    if args.extract:
+        if columns_list == []:
+            print("No columns to extract were given.")
+            return
+        df_combined = combine_csv_files(raw_data_file, calculated_data_file)
+        if df_combined is None:
+            print(f"Unable to combine data files.")
+            return
+        df_extracted = extract_columns(columns_list, df_combined)
+        success = save_df_to_csv(
+            df_extracted,
+            os.path.join(
+                DATA_DIR, f"extracted{'.'+args.tag if args.tag != '' else ''}.csv"
+            ),
+        )
+
     if args.split:
-        df_split = combine_and_extract_and_graph(
+        combine_and_extract_and_graph(
             columns=columns_list,
             filter_rules=filter_rules,
             stem="mass-vs-radius",
@@ -199,27 +237,6 @@ def main() -> None:
             y_axis_max=2010,
             error_cross=False,
         )
-
-    # if df is not None:
-    #     print()
-    #     print("Summary statistics:")
-    #     print(
-    #         f"  Planets with surface gravity computed : {df['ppld_surf_grav_ms2'].notna().sum():,}"
-    #     )
-    #     print(
-    #         f"  Surface gravity range (m/s²)          : "
-    #         f"{df['ppld_surf_grav_ms2'].min():.2f} – {df['ppld_surf_grav_ms2'].max():.2f}"
-    #     )
-    #     print(
-    #         f"  Surface gravity range (g_Earth)       : "
-    #         f"{df['ppld_surf_grav_earth'].min():.3f} – {df['ppld_surf_grav_earth'].max():.3f}"
-    #     )
-    #     print()
-    #     counts = df["dm_class"].value_counts().sort_index()
-    #     print("Durand-Manterola class counts:")
-    #     for cls, n in counts.items():
-    #         print(f"  Class {cls}: {n:,} planets")
-    #     print()
 
 
 if __name__ == "__main__":

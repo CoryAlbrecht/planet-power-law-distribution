@@ -7,11 +7,15 @@ from io import StringIO
 import pandas as pd
 
 RAW_DATA_FILE_TEMPLATE = "%t-raw-data.csv"
-COMPUTED_DATA_FILE_TEMPLATE = "%t-computed.csv"
+CALCULATED_DATA_FILE_TEMPLATE = "%t-computed.csv"
 MAX_AGE = timedelta(weeks=1)
 
 DATA_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data"
+)
+
+SCRIPT_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "scripts"
 )
 
 G = 6.67430e-11
@@ -28,7 +32,7 @@ DM_GRAVITY: dict[str, tuple[float, float]] = {
     "C": (4e-28, 1.0482),
 }
 
-TAP_BASE = "https://exoplanetarchive.ipac.caltech.edu/TAP/sync"
+EXOPLANET_ARCHIVE_TAP_BASE = "https://exoplanetarchive.ipac.caltech.edu/TAP/sync"
 
 USUAL_PS_WHERE = "pl_bmassj IS NOT NULL AND pl_radj IS NOT NULL AND pl_dens IS NOT NULL"
 
@@ -36,7 +40,7 @@ USUAL_PSCOMPPARS_WHERE = (
     "pl_bmassj IS NOT NULL AND pl_radj IS NOT NULL AND pl_dens IS NOT NULL"
 )
 
-ALL_PSCOMPPARS_COLUMNS = [
+ALL_PSCOMPPARS_COLUMNS: list[str] = [
     "objectid",
     "pl_name",
     "pl_letter",

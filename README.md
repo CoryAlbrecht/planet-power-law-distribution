@@ -1,6 +1,6 @@
 # Exoplanet Mass–Radius–Density–Gravity Dataset
 
-A Python script that queries the [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) for all confirmed exoplanets with known mass, radius, and density. It then computes the mass in kilograms and radius in meters, as well as calculates a reliability weighting for each entry, and classifies each planet using the Durand-Manterola (2011) three-class scheme, and exports the result as CSV files. Also creates scatter plots from the data.
+A Python script that queries the [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) for all confirmed exoplanets with known mass, radius, and density. It then calculates the mass in kilograms and radius in meters, as well as calculates a reliability weighting for each entry, and classifies each planet using the Durand-Manterola (2011) three-class scheme, and exports the result as CSV files. Also creates scatter plots from the data.
 
 ---
 
@@ -70,8 +70,8 @@ $ planet-power -r --refresh
 $ planet-power -r -p
 $ planet-power -r --pscomppars
 
-# Compute the extra values
-$ planet-power --compute
+# Calculate the extra values
+$ planet-power --calculate
 $ planet-power -c -p
 
 # Create split files for plotting with no filtering, may be with downloaded PSCompPars data
@@ -100,7 +100,7 @@ No API key is required. The script queries NASA's public TAP service directly.
 |-------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
 | `-r`, `--retrieve`                                          | Fetch data from NASA Exoplanet Archive                                                                                                                                                                                                                          | CSV      |
 | `-R`, `--refresh`                                           | Force refresh of raw data from NASA Exoplanet Archive                                                                                                                                                                                                           | CSV      |
-| `-C`, `--compute`                                           | Create extra CSV file with computed values not in the NASA Exoplanet Archive data                                                                                                                                                                               | CSV      |
+| `-C`, `--calculate`                                         | Create extra CSV file with calculated values not in the NASA Exoplanet Archive data                                                                                                                                                                             | CSV      |
 | `-s`, `--split`                                             | Create split files for scatter plots                                                                                                                                                                                                                            | CSV, PNG |
 | `-f COLUMN:REGEX`, `--filter COLUMN:REGEX`                  | Filter out rows where COLUMN matches REGEX (can be used multiple times)                                                                                                                                                                                         |          |
 | `-t TAG`, `--tag TAG`                                       | Tag to append to split output filenames                                                                                                                                                                                                                         |          |
@@ -139,7 +139,7 @@ Radius and density do not have an equivalent provenance column in the archive, s
 
 #### 2. Error completeness penalty
 
-If both error bars are present, no additional penalty is applied. If only one error bar exists, $W_{prov}$ is multiplied by $0.6$ before the precision factor is computed — separating the question of *whether* the uncertainty is fully characterised from *how large* it is. If neither error bar is present, the function returns $W_{prov} × 0.1$ immediately as a heavy penalty.
+If both error bars are present, no additional penalty is applied. If only one error bar exists, $W_{prov}$ is multiplied by $0.6$ before the precision factor is calculated — separating the question of *whether* the uncertainty is fully characterised from *how large* it is. If neither error bar is present, the function returns $W_{prov} × 0.1$ immediately as a heavy penalty.
 
 #### 3. Precision factor ($W_{prec}$)
 
@@ -147,7 +147,7 @@ An exponential decay is applied to the relative uncertainty $\delta = \sigma / v
 
 $$W_{prec} = e^{-\delta}$$
 
-This ensures that points with high relative uncertainty fade naturally while those with small errors relative to their value retain a weight close to $1.0$. Note that $\sigma$ is computed as the mean of whichever error bars exist — the completeness penalty above handles the asymmetry separately rather than folding it into $\sigma$.
+This ensures that points with high relative uncertainty fade naturally while those with small errors relative to their value retain a weight close to $1.0$. Note that $\sigma$ is calculated as the mean of whichever error bars exist — the completeness penalty above handles the asymmetry separately rather than folding it into $\sigma$.
 
 #### Combined weight
 
@@ -159,7 +159,7 @@ This weighting scheme combines provenance quality with measurement precision usi
 
 Surface gravity ($g$) is calculated using the standard Newtonian formula:
 $$g = \frac{G \cdot M}{R^2}$$
-where $M$ is the computed mass in kg and $R$ is the computed radius in meters.
+where $M$ is the caclulated mass in kg and $R$ is the calculated radius in meters.
 
 ### Durand-Manterola classification
 
@@ -244,7 +244,7 @@ The Exoplanet Archive data has the `pl_bmassprov` column, which means exoplanet 
 
 **Separate calculated from measured densities.** Rerunning the analysis on the subset with directly measured densities would test whether the power law structure is robust to the archive's density imputation.
 
-**Add escape velocity.** Durand-Manterola's toy model [https://arxiv.org/abs/1111.3986]((Figure 5)) uses escape velocity to explain volatile retention in Class B. This is straightforward to compute from the same mass and radius data and would add physical context to the dataset.
+**Add escape velocity.** Durand-Manterola's toy model [https://arxiv.org/abs/1111.3986]((Figure 5)) uses escape velocity to explain volatile retention in Class B. This is straightforward to calculate from the same mass and radius data and would add physical context to the dataset.
 
 **Add more advanced data filtering.** Currently filtering is simplistic. If a row has a field that matches a filter from the command line, that row is discarded. More research needs to be done to see if this simple, indiscrimnate filtering is necessary due to Chen's & Kipping's piecewise power law speading to other columns, or if more sophistacted filtered (i.e. boolean logic) could increase the size of the comparison sets.
 

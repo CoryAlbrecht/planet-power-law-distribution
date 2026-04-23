@@ -137,8 +137,6 @@ def load_csv_to_df(
     try:
         # This will raise a ValueError if any item in required_cols is missing
         must_have_cols = required_cols
-        if "pl_name" not in must_have_cols:
-            must_have_cols.append("pl_name")
         df = pd.read_csv(csv_file, encoding=encoding)
         for col in must_have_cols:
             if col not in df.columns:
@@ -147,6 +145,15 @@ def load_csv_to_df(
         return df
     except ValueError as e:
         print(f"Could not load {csv_file}: Missing required columns. {e}")
+        return None
+    except PermissionError as e:
+        print(f"Permission denied: {e}")
+        return None
+    except FileNotFoundError as e:
+        print(f"File not found: {e}")
+        return None
+    except OSError as e:
+        print(f"OS error: {e}")
         return None
     except Exception as e:
         print(f"Error loading {csv_file}: {e}")
@@ -164,7 +171,17 @@ def save_df_to_csv(df: pd.DataFrame, file_name: str = "file.csv") -> bool:
             encoding="utf-8",
         )
         return True
+    except PermissionError as e:
+        print(f"Permission denied: {e}")
+        return False
+    except FileNotFoundError as e:
+        print(f"File not found: {e}")
+        return False
+    except OSError as e:
+        print(f"OS error: {e}")
+        return False
     except Exception as e:
+        print(f"Error saving DataFrame to CSV: {e}")
         return False
 
 
@@ -185,15 +202,26 @@ def combine_df(*dfs: pd.DataFrame) -> Optional[pd.DataFrame]:
     return combined
 
 
-def combine_csv(
-    *csv_files: str, required_cols: list[str] = ["pl_name"]
+def combine_csv_files(
+    index_col: str = "pl_name", *csv_files: str, required_cols: list[str] = []
 ) -> Optional[pd.DataFrame]:
     df_list = []
 
     for cf in csv_files:
-        df = load_csv_to_df(cf, required_cols=required_cols)
+        df = load_csv_to_df(
+            cf,
+            required_cols=(
+                required_cols + [index_col]
+                if index_col not in required_cols
+                else required_cols
+            ),
+        )
         if df is not None:
             # We set the index here to guarantee alignment by planet name
-            df_list.append(df.set_index("pl_name"))
+            df_list.append(df.set_index(index_col))
 
     return combine_df(*df_list)
+
+
+def extract_columns(columns: list[str], df: pd.DataFrame) -> pd.DataFrame:
+    return df[columns].copy
