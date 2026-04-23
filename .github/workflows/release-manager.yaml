@@ -19,11 +19,12 @@ jobs:
       - name: Parse Version from pyproject.toml
         id: parse_version
         run: |
-          # Extracts version = "X.Y.Z" from pyproject.toml
           V=$(grep -m 1 "version =" pyproject.toml | cut -d '"' -f 2)
           echo "V_NUMBER=$V" >> $GITHUB_OUTPUT
 
-          if [[ "$V" == *"-dev"* ]] || [[ "$V" == *"-unstable"* ]]; then
+          # Regex looks for dev, unstable, alpha, beta, rc, or pre 
+          # prefixed by either a dot or a hyphen.
+          if [[ "$V" =~ [-.]?(dev|unstable|alpha|beta|rc|pre|a|b)[0-9]*$ ]]; then
             echo "STATUS=unstable" >> $GITHUB_OUTPUT
           else
             echo "STATUS=stable" >> $GITHUB_OUTPUT
