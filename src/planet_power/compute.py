@@ -8,6 +8,7 @@ import pandas as pd
 
 from planet_power.constants import (
     DATA_DIR,
+    COMPUTED_DATA_FILE_TEMPLATE,
     DM_AB_KG,
     DM_BC_KG,
     DM_GRAVITY,
@@ -16,6 +17,7 @@ from planet_power.constants import (
     R_JUP_M,
     G,
 )
+from planet_power.helpers import save_df_to_csv
 
 
 def calculate_astrophysical_weight(
@@ -100,7 +102,7 @@ def _row_density_weight(row: pd.Series) -> float:
     return calculate_astrophysical_weight(value=density, err_plus=err1, err_minus=err2)
 
 
-def compute_extras(df: pd.DataFrame, table: str = "ps", tag: str = "") -> pd.DataFrame:
+def compute_extras(df: pd.DataFrame, data_table: str = "ps") -> pd.DataFrame:
     """
     Compute derived columns from raw NASA mass, radius, and density columns
     and return them as a new DataFrame alongside the planet identity columns.
@@ -121,7 +123,9 @@ def compute_extras(df: pd.DataFrame, table: str = "ps", tag: str = "") -> pd.Dat
     """
 
     print("Computing extra data …")
-    extras_file = f"{table}-computed{'.'+tag if tag != '' else ''}.csv"
+    extras_file = os.path.join(
+        DATA_DIR, COMPUTED_DATA_FILE_TEMPLATE.replace("%t", data_table)
+    )
 
     mass_weights: pd.Series[float] = df.apply(_row_mass_weight, axis=1)
     radius_weights: pd.Series[float] = df.apply(_row_radius_weight, axis=1)
@@ -144,26 +148,23 @@ def compute_extras(df: pd.DataFrame, table: str = "ps", tag: str = "") -> pd.Dat
         }
     )
 
-    output_path = os.path.join(DATA_DIR, extras_file)
-    df_extras.to_csv(output_path, index=False, quoting=1, encoding="utf-8")
-    print(f"  → Saved computed extras to {extras_file}")
+    # Compute surface gravity
+    df_extras = compute_surface_gravity(df_extras)
+
+    # Assign Durand-Manterola classes
+    df_extras = assign_dm_class(df_extras)
+
+    save_df_to_csv(df_extras, extras_file)
 
     return df_extras
 
 
 def compute_surface_gravity(df: pd.DataFrame) -> pd.DataFrame:
     """Compute surface gravity g = G·M / R² with propagated uncertainties."""
-    M = df["pl_bmassj"].fillna(0) * M_JUP_KG
-    R = df["pl_radj"].fillna(0) * R_JUP_M
+    print("Compute surface gravity g = G·M / R² with propagated uncertainties.")
+    M = df["ppld_mass_kg"].fillna(0)
+    R = df["ppld_radius_m"].fillna(0)
     g = G * M / R**2
-
-    df["ppld_mass_kg"] = M
-    df["ppld_mass_kg_err1"] = df["pl_bmassjerr1"].fillna(0) * M_JUP_KG
-    df["ppld_mass_kg_err2"] = df["pl_bmassjerr2"].fillna(0) * M_JUP_KG
-
-    df["ppld_radius_m"] = R
-    df["ppld_radius_m_err1"] = df["pl_radjerr1"].fillna(0) * R_JUP_M
-    df["ppld_radius_m_err2"] = df["pl_radjerr2"].fillna(0) * R_JUP_M
 
     df["ppld_surf_grav_ms2"] = g.round(4)
     df["ppld_surf_grav_earth"] = (g / G_EARTH).round(4)
@@ -173,16 +174,26 @@ def compute_surface_gravity(df: pd.DataFrame) -> pd.DataFrame:
     R_err1 = df["ppld_radius_m_err1"]
     R_err2 = df["ppld_radius_m_err2"]
 
-    M_large = (M + M_err1).clip(lower=0)
-    R_large = (R + R_err1).clip(lower=1e-10)
-    g_large = G * M_large / R_large**2
+    # --- UPPER BOUND (Maximum Gravity) ---
+    # To maximize g, we need the largest Mass and the smallest Radius.
+    # Since Radius_err2 is negative, R + R_err2 makes the denominator smaller.
+    M_max = (M + df["ppld_mass_kg_err1"]).clip(lower=0)
+    R_min = (R + df["ppld_radius_m_err2"]).clip(lower=1e-10)
+    g_max = G * M_max / R_min**2
 
-    M_small = (M - M_err2).clip(lower=0)
-    R_small = (R - R_err2).clip(lower=1e-10)
-    g_small = G * M_small / R_small**2
+    # --- LOWER BOUND (Minimum Gravity) ---
+    # To minimize g, we need the smallest Mass and the largest Radius.
+    M_min = (M + df["ppld_mass_kg_err2"]).clip(lower=0)
+    R_max = (R + df["ppld_radius_m_err1"]).clip(lower=1e-10)
+    g_min = G * M_min / R_max**2
 
-    df["ppld_surf_grav_ms2_err1"] = (g_large - g).round(4)
-    df["ppld_surf_grav_ms2_err2"] = (g - g_small).round(4)
+    # --- FINAL ASSIGNMENT ---
+    # Positive value (e.g., +0.5)
+    df["ppld_surf_grav_ms2_err1"] = (g_max - g).round(4)
+
+    # Negative value (e.g., -0.3)
+    df["ppld_surf_grav_ms2_err2"] = (g_min - g).round(4)
+
     df["ppld_surf_grav_earth_err1"] = (df["ppld_surf_grav_ms2_err1"] / G_EARTH).round(4)
     df["ppld_surf_grav_earth_err2"] = (df["ppld_surf_grav_ms2_err2"] / G_EARTH).round(4)
 
@@ -191,8 +202,9 @@ def compute_surface_gravity(df: pd.DataFrame) -> pd.DataFrame:
 
 def assign_dm_class(df: pd.DataFrame) -> pd.DataFrame:
     """Assign Durand-Manterola (2011) planet class based on mass in kg."""
-    M_kg: pd.Series = df["pl_bmassj"] * M_JUP_KG
-    M_kg_null: pd.Series = df["pl_bmassj"].isna()
+    print("Assign Durand-Manterola (2011) planet class based on mass in kg.")
+    M_kg: pd.Series = df["ppld_mass_kg"]
+    M_kg_null: pd.Series = df["ppld_mass_kg"].isna()
 
     dm_class_arr: pd.Series = pd.cut(
         M_kg,

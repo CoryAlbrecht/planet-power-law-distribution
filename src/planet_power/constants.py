@@ -2,9 +2,12 @@
 
 import os
 from datetime import timedelta
+from io import StringIO
 
-RAW_DATA_FILE_TEMPLATE = "%t-raw-data%T.csv"
-COMPUTED_DATA_FILE_TEMPLATE = "%t-computed%T.csv"
+import pandas as pd
+
+RAW_DATA_FILE_TEMPLATE = "%t-raw-data.csv"
+COMPUTED_DATA_FILE_TEMPLATE = "%t-computed.csv"
 MAX_AGE = timedelta(weeks=1)
 
 DATA_DIR = os.path.join(
@@ -1308,3 +1311,44 @@ COLUMN_GROUPS = {
     "dm_pred_g_earth": "DM Class",
     "dm_grav_residual": "DM Class",
 }
+
+SOLAR_SYSTEM_OBJECTS = """
+body,mass_kg,mass_err_plus,mass_err_minus,mass_weight,mass_method,mass_reference,radius_m,radius_err_plus,radius_err_minus,radius_weight,radius_method,radius_reference,density_kg_m3,density_err_plus,density_err_minus,density_method,density_reference,density_weight
+Jupiter,1.8982E+027,5E+022,5E+022,0.95,spacecraft_ephemeris,Jacobson et al. (2015/2023) JPL Planetary Ephemerides + Juno gravity solutions,69911000,10000,10000,0.95,occultation+shape,IAU Working Group (2015) Planetary and Satellite Physical Parameters,1326,10,10,GM+radius derived,Iess et al. (2019) Cassini + Juno gravity field; NASA JPL DE440,0.99
+Saturn,5.6834E+026,3E+022,3E+022,0.95,spacecraft_gravity,Iess et al. (2019) Cassini Gravity Field and Internal Structure,58232000,10000,10000,0.95,occultation+ring constraints,IAU (2015) + Cassini limb fits,687,12,12,GM+radius derived,Iess et al. (2019) Cassini gravity inversion (Nature),0.99
+Neptune,1.02409E+026,5E+021,5E+021,0.95,ephemeris_fit,Jacobson (2014/2023) Neptune System Ephemerides,24622000,20000,20000,0.95,Voyager_occultation,Tyler et al. (1989) Voyager 2 Atmosphere & Radius,1638,30,30,GM+radius derived,Tyler et al. (1989) Voyager 2 + JPL ephemerides,0.97
+Uranus,8.681E+025,5E+021,5E+021,0.95,ephemeris_fit,Jacobson (2014/2023) Uranian System Ephemerides,25362000,7000,7000,0.95,Voyager+astrometry,Lindal et al. (1987) Voyager Radio Occultation,1270,40,40,GM+radius derived,Lindal et al. (1987) Voyager occultation + Jacobson ephemeris updates,0.97
+Earth,5.97237E+024,1E+020,1E+020,0.95,satellite_geodesy,Petit & Luzum (2010) IERS Conventions + GRACE/GOCE updates,6371010,10,10,0.95,geodetic_reference,NASA/IAU Earth Reference Ellipsoid (WGS84 updates),5514,1,1,geodesy+gravity field,IERS Conventions 2010 + GRACE/GOCE (Petit & Luzum),0.99
+Venus,4.8675E+024,1E+020,1E+020,0.95,spacecraft_tracking,Konopliv et al. (1999) Magellan Gravity Field,6051800,10,10,0.95,radar_altimetry,Magellan Radar Mapping + IAU (2015),5243,4,4,radar+tracking derived,Konopliv et al. (1999) Magellan gravity field,0.98
+Mars,6.4171E+023,1E+019,1E+019,0.95,orbiter_tracking,Konopliv et al. (2016) MRO/MGS Gravity Field,3389500,50,50,0.95,laser_altimetry,Smith et al. (2001) MOLA Topography,3934,1,1,orbiter gravity model,Konopliv et al. (2016) MRO/MGS gravity field,0.99
+Mercury,3.3011E+023,1E+019,1E+019,0.95,spacecraft_tracking,Smith et al. (2012) MESSENGER Gravity Field,2439700,100,100,0.95,radar+imaging,Anderson et al. (2012) MESSENGER Radius Model,5427,3,3,spacecraft gravity,Smith et al. (2012) MESSENGER gravity model,0.99
+Ganymede,1.4819E+023,1E+019,1E+019,0.95,galileo_gravity,Anderson et al. (1996) Galileo Ganymede Gravity,2634100,1000,1000,0.95,imaging+limb,Thomas et al. (1998),1942,5,5,spacecraft gravity+shape,Anderson et al. (1996) Galileo gravity field (Icarus),0.98
+Titan,1.3452E+023,1E+019,1E+019,0.95,cassini_tracking,Jacobson et al. (2006) Cassini Titan Orbit Solution,2575000,2000,2000,0.95,radar_altimetry,Stiles et al. (2008) Cassini Radar Topography,1881,5,5,cassini tracking+occultation,Jacobson et al. (2006) Cassini orbit determination,0.98
+Callisto,1.0759E+023,1E+019,1E+019,0.95,galileo_gravity,Anderson et al. (2001) Callisto Gravity Field,2410300,1000,1000,0.95,imaging,Thomas et al. (1998),1830,5,5,galileo gravity model,Anderson et al. (2001) Galileo Callisto gravity,0.98
+Io,8.9319E+022,9E+018,9E+018,0.95,galileo_gravity,Anderson et al. (2001) Galileo Gravity Results,1821600,2000,2000,0.95,imaging+limb_fit,Thomas et al. (1998) Voyager/Galileo shape,3530,10,10,galileo gravity field,Anderson et al. (2001) Io gravity solution,0.98
+Moon,7.342E+022,1E+019,1E+019,0.95,LLR+GRAIL,Williams et al. (2014) Lunar Laser Ranging + Zuber et al. (2013) GRAIL,1737400,5,5,0.95,laser_altimetry,LRO LOLA (Smith et al. 2010),3340,2,2,LLR+GRAIL gravity model,Williams et al. (2014) + Zuber et al. (2013 GRAIL Science),0.99
+Europa,4.7998E+022,6E+018,6E+018,0.95,galileo_flybys,Anderson et al. (1998) Europa Gravity Field,1560800,2000,2000,0.95,imaging,Schenk & McKinnon (1989/2009 updates),3010,10,10,galileo flyby gravity,Anderson et al. (1998) Europa gravity model,0.98
+Triton,2.14E+022,1E+019,1E+019,0.9,voyager_dynamics,Jacobson et al. (1990) Neptune System + Voyager 2,1353400,2000,2000,0.9,imaging,Smith et al. (1989) Voyager 2 Triton Imaging,2060,20,20,voyager dynamics+ephemeris,Jacobson et al. (1990) Neptune system solution,0.95
+Eris,1.646E+022,1E+019,1E+019,0.8,orbital_dynamics,Brown & Schaller (2007) Dysnomia Orbit,1163000,6000,6000,0.8,stellar_occultation,Sicardy et al. (2011/2016),2420,200,200,orbital dynamics + occultation,"Sicardy et al. (2011, 2016) stellar occultation",0.8
+Pluto,1.303E+022,5E+018,5E+018,0.95,new_horizons_dynamics,Stern et al. (2015) New Horizons Pluto System,1188300,1000,1000,0.95,imaging_occultation,Nimmo et al. (2017) Pluto Radius Model,1854,6,6,new horizons gravity+occultation,Nimmo et al. (2017) Pluto system density,0.99
+Haumea,4.006E+021,1E+019,1E+019,0.8,satellite_orbits,Ragozzine & Brown (2009) Hiʻiaka Orbit,715000,20000,20000,0.8,shape_model,Lockwood et al. (2014) Lightcurve Modeling,1880,120,120,shape + satellite orbit,Ragozzine & Brown (2009) + Lockwood et al. (2014),0.85
+Titania,3.527E+021,1E+018,1E+018,0.8,voyager_dynamics,Jacobson (1992) Uranian Moons Dynamics,789000,2000,2000,0.8,imaging,Thomas (1988 Voyager 2 Uranus),1710,30,30,voyager gravity estimate,Jacobson (1992) Uranian system dynamics,0.9
+Makemake,3.1E+021,1.5E+021,1.5E+021,0.5,thermal_model,Ortiz et al. (2012) Stellar Occultation + Albedo,710000,30000,30000,0.5,occultation_single,Ortiz et al. (2012),1900,300,300,thermal model + albedo constraint,Ortiz et al. (2012) stellar occultation,0.7
+Oberon,3.014E+021,1E+018,1E+018,0.8,voyager_dynamics,Jacobson (1992),761000,2000,2000,0.8,imaging,Smith et al. (1986),1630,30,30,voyager dynamics,Jacobson (1992),0.9
+Sedna,3E+021,2E+021,2E+021,0.2,albedo_assumption,Brown et al. (2004) Discovery Paper (no mass constraint),550000,50000,50000,0.2,assumed_model,Brown et al. (2004),>1000?,,,assumed from composition models,Brown et al. (2004 discovery; no dynamical mass constraint,0.2
+Rhea,2.306E+021,1E+018,1E+018,0.8,cassini_tracking,Jacobson et al. (2006 Saturn Moons,763000,1000,1000,0.8,imaging,Thomas et al. (2007 Cassini),1233,20,20,cassini gravity field,Jacobson et al. (2006) Saturn system,0.92
+Iapetus,1.805E+021,1E+018,1E+018,0.8,cassini_tracking,Jacobson et al. (2006),735000,1000,1000,0.8,imaging,Thomas et al. (2007),1085,30,30,cassini tracking,Jacobson et al. (2006),0.9
+Gonggong,1.75E+021,7E+020,7E+020,0.5,satellite_dynamics,Fraser et al. (2016) Xiangliu Orbit,615000,20000,20000,0.5,thermal_model,Lellouch et al. (2010s TNO surveys),1900,300,300,satellite orbit + thermal,Fraser et al. (2016) Xiangliu system,0.7
+Charon,1.586E+021,1E+018,1E+018,0.95,pluto_barycenter_dynamics,Buie et al. (2018) New Horizons System Dynamics,606300,10,10,0.95,imaging_occultation,Nimmo et al. (2017),1855,5,5,pluto system dynamics,Buie et al. (2018) New Horizons system solution,0.99
+Quaoar,1.4E+021,1E+019,1E+019,0.8,satellite_orbit,Fraser & Brown (2010) Weywot Orbit,555000,2000,2000,0.8,stellar_occultation,Braga-Ribas et al. (2013),1975,50,50,satellite orbit + occultation,Braga-Ribas et al. (2013),0.88
+Ariel,1.353E+021,1E+018,1E+018,0.8,voyager_dynamics,Jacobson (1992),579000,2000,2000,0.8,imaging,Smith et al. (1986),1660,30,30,voyager gravity,Jacobson (1992),0.9
+Umbriel,1.172E+021,1E+018,1E+018,0.8,voyager_dynamics,Jacobson (1992),584000,2000,2000,0.8,imaging,Smith et al. (1986),1400,30,30,voyager gravity,Jacobson (1992),0.9
+Dione,1.095E+021,1E+018,1E+018,0.8,cassini_tracking,Jacobson et al. (2006),561000,1000,1000,0.8,imaging,Thomas et al. (2007),1470,20,20,cassini tracking,Jacobson et al. (2006),0.92
+Ceres,9.3835E+020,1E+017,1E+017,0.95,dawn_gravity,Park et al. (2019) Dawn Ceres Gravity Field,473500,200,200,0.95,laser_altimetry,Russell et al. (2016) Dawn Shape Model,2162,5,5,dawn gravity field,Park et al. (2019) Dawn mission gravity model,0.99
+Orcus,6.32E+020,1E+018,1E+018,0.8,satellite_orbit,Brown et al. (2010) Vanth Orbit,450000,1000,1000,0.8,occultation+imaging,Sicardy et al. (2011),1900,100,100,satellite orbit,Brown et al. (2010) Vanth orbit solution,0.85
+Tethys,6.174E+020,1E+018,1E+018,0.8,cassini_tracking,Jacobson et al. (2006),531000,1000,1000,0.8,imaging,Thomas et al. (2007),984,30,30,cassini tracking,Jacobson et al. (2006),0.9
+Salacia,4E+020,1E+019,1E+019,0.7,satellite_orbit,Johnson et al. (2019) Actaea Orbit,420000,20000,20000,0.7,thermal_model,Vilenius et al. (2012),1000,200,200,thermal + satellite orbit,Vilenius et al. (2012),0.75
+Vesta,2.59E+020,1E+017,-1E+017,0.95,dawn spacecraft,"Konopliv et al. (2014) The Vesta gravity field, spin pole, and rotation period from the Dawn spacecraft",262300,100,100,0.95,dawn spacecraft,Ermakov et al. (2014 / 2017) Constraints on Vesta’s interior structure using Dawn gravity and shape models,3450,10,10,dawn gravity + shape,Konopliv et al. (2014) Icarus Dawn gravity model,0.99
+"""
+
+df_sso = pd.read_csv(StringIO(SOLAR_SYSTEM_OBJECTS))

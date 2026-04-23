@@ -7,6 +7,8 @@ from io import StringIO
 import pandas as pd
 import requests
 
+from planet_power.helpers import load_csv_to_df, save_df_to_csv
+
 from planet_power.constants import (
     DATA_DIR,
     MAX_AGE,
@@ -31,7 +33,6 @@ def retrieve_exoplanet_data(
     columns: list[str] | None = None,
     force_refresh: bool = False,
     pscomppars: bool = False,
-    tag: str = "",
 ) -> pd.DataFrame:
     """Query NASA Exoplanet Archive TAP service.
 
@@ -44,19 +45,19 @@ def retrieve_exoplanet_data(
     data_table = "pscomppars" if pscomppars else "ps"
 
     raw_data_file = os.path.join(
-        DATA_DIR,
-        RAW_DATA_FILE_TEMPLATE.replace("%t", data_table).replace(
-            "%T", f".{tag}" if tag != "" else ""
-        ),
+        DATA_DIR, RAW_DATA_FILE_TEMPLATE.replace("%t", data_table)
     )
     if not force_refresh and _is_cache_valid(raw_data_file):
         print(
             f"Loading cached data from {os.path.basename(raw_data_file)} …",
             flush=True,
         )
-        df = pd.read_csv(raw_data_file, encoding="utf-8")
-        print(f"  → {len(df):,} planets loaded from cache.")
-        return df
+        df = load_csv_to_df(raw_data_file, encoding="utf-8")
+        if df is not None:
+            print(f"  → {len(df):,} planets loaded from cache.")
+            return df
+        else:
+            print(f"Could not load cached CSV file, so trying to redownload.")
     cols = None
     if columns is None:
         if pscomppars:
@@ -85,13 +86,7 @@ def retrieve_exoplanet_data(
     print(f"  → {len(df):,} planets retrieved.")
 
     print("Saving data to CSV file")
-    os.makedirs(DATA_DIR, exist_ok=True)
-    df.to_csv(
-        raw_data_file,
-        index=False,
-        quoting=1,
-        encoding="utf-8",
-    )
-    print(f"  → Saved raw data to {os.path.basename(raw_data_file)}")
+    if save_df_to_csv(df, raw_data_file):
+        print(f"  → Saved raw data to {os.path.basename(raw_data_file)}")
 
     return df

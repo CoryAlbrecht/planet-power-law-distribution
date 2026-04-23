@@ -12,7 +12,12 @@ import pandas as pd
 from planet_power.compute import compute_extras
 from planet_power.constants import DATA_DIR, RAW_DATA_FILE_TEMPLATE
 from planet_power.extraction import combine_and_extract_and_graph
-from planet_power.helpers import get_column_list, list_available_columns
+from planet_power.helpers import (
+    get_column_list,
+    list_available_columns,
+    load_csv_to_df,
+    save_df_to_csv,
+)
 from planet_power.retrieve import retrieve_exoplanet_data
 
 
@@ -69,7 +74,6 @@ def main() -> None:
         metavar="COLUMN|REGEX",
         help="Exact name of a column ore a regular expression to match multiple. Can be used multiple times.",
     )
-
     parser.add_argument(
         "--help-columns",
         action="store_true",
@@ -134,36 +138,21 @@ def main() -> None:
             columns=columns_list,
             force_refresh=args.refresh,
             pscomppars=args.pscomppars,
-            tag=args.tag,
         )
 
     if args.compute:
         if df is None:
             raw_data_file = os.path.join(
-                DATA_DIR,
-                RAW_DATA_FILE_TEMPLATE.replace("%t", data_table).replace(
-                    "%T", f".{args.tag}" if args.tag != "" else ""
-                ),
+                DATA_DIR, RAW_DATA_FILE_TEMPLATE.replace("%t", data_table)
             )
-            df = pd.read_csv(raw_data_file, encoding="utf-8")
-        compute_extras(df, table=data_table, tag=args.tag)
-        # df = compute_surface_gravity(df)
-        # df = assign_dm_class(df)
-        # base_path = os.path.join(DATA_DIR, "exoplanet_data")
-        # csv_output = f"{base_path}.csv"
-        # print(
-        #     f"Writing {len(df):,} rows to {os.path.basename(base_path)}.xlsx and {os.path.basename(csv_output)} …",
-        #     flush=True,
-        #     end="",
-        # )
-        # df.to_excel(f"{base_path}.xlsx", index=False, engine="openpyxl")  # type: ignore[reportUnknownMemberType]
-        # df.to_csv(csv_output, index=False, quoting=1, encoding="utf-8")
-        # format_workbook(f"{base_path}.xlsx", len(df))
-        # print(f"Done.")
-        # print(f"\nFiles saved: exoplanet_data.xlsx, exoplanet_data.csv")
+            df = load_csv_to_df(csv_file=raw_data_file, encoding="utf-8")
+        if df is not None:
+            compute_extras(df, data_table=data_table)
+        else:
+            print(f"Unable to load file '{raw_data_file}'.")
 
     if args.split:
-        combine_and_extract_and_graph(
+        df_split = combine_and_extract_and_graph(
             columns=columns_list,
             filter_rules=filter_rules,
             stem="mass-vs-radius",
@@ -173,10 +162,16 @@ def main() -> None:
             x_err_plus_col="ppld_mass_kg_err1",
             x_err_minus_col="ppld_mass_kg_err2",
             x_weight_col="ppld_mass_weight",
+            x_hexcolor="#ff0000",
+            x_axis_min=1e21,
+            x_axis_max=1e30,
             y_col="ppld_radius_m",
             y_err_plus_col="ppld_radius_m_err1",
             y_err_minus_col="ppld_radius_m_err2",
             y_weight_col="ppld_radius_weight",
+            y_hexcolor="#0000ff",
+            y_axis_min=1e05,
+            y_axis_max=1e09,
             error_cross=False,
         )
         combine_and_extract_and_graph(
@@ -189,10 +184,16 @@ def main() -> None:
             x_err_plus_col="ppld_mass_kg_err1",
             x_err_minus_col="ppld_mass_kg_err2",
             x_weight_col="ppld_mass_weight",
+            x_hexcolor="#ff0000",
+            x_axis_min=1e21,
+            x_axis_max=1e30,
             y_col="pl_dens",
             y_err_plus_col="pl_denserr1",
             y_err_minus_col="pl_denserr2",
             y_weight_col="ppld_density_weight",
+            y_hexcolor="#00ff00",
+            y_axis_min=1e-3,
+            y_axis_max=2010,
             error_cross=False,
         )
 
