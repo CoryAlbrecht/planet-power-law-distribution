@@ -153,7 +153,7 @@ This ensures that points with high relative uncertainty fade naturally while tho
 
 $$W = \mathrm{clip}(W_{prov} \cdot W_{prec},\ 0,\ 1)$$
 
-This weighting scheme is a custom one and is close to but not exactly the same as the inverse-variance weights ($1/\sigma^2$) used in standard astronomical regression tools such as `linmix` or `scipy.odr`. It is designed to take into account not only the provenance information in the **Exoplanet Archive** data, but also that both positive and negative errors might not be supplied.
+This weighting scheme combines provenance quality with measurement precision using exponential decay of relative uncertainty. It shares the same $[0, 1]$ range as inverse-variance weighting and can be passed directly to fitting routines such as `linmix` or `scipy.odr`. The exponential form is deliberately gentler than $1/\sigma^2$ at large uncertainties, treating poorly-measured planets as low-confidence rather than discarding them.
 
 ### Surface gravity
 

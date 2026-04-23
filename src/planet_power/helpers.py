@@ -1,17 +1,22 @@
 """Utility functions that don't belong in a more specific module."""
 
+import csv
+import glob
 import os
 import re
-import glob
+from functools import reduce
+from pathlib import Path
+from typing import Optional
 
+import pandas as pd
 from rich import box
 from rich.console import Console
 from rich.table import Table
 
 from planet_power.constants import (
+    ALL_COMPUTED_COLUMNS,
     ALL_PS_COLUMNS,
     ALL_PSCOMPPARS_COLUMNS,
-    ALL_COMPUTED_COLUMNS,
     DATA_DIR,
     RAW_DATA_FILE_TEMPLATE,
 )
@@ -124,3 +129,71 @@ def get_column_list(patterns: list[str]) -> list[str]:
         process_pattern(pattern)
 
     return result
+
+
+def load_csv_to_df(
+    csv_file: str, required_cols: list[str] = ["pl_name"], encoding: str = "utf-8"
+) -> Optional[pd.DataFrame]:
+    try:
+        # This will raise a ValueError if any item in required_cols is missing
+        must_have_cols = required_cols
+        if "pl_name" not in must_have_cols:
+            must_have_cols.append("pl_name")
+        df = pd.read_csv(csv_file, encoding=encoding)
+        for col in must_have_cols:
+            if col not in df.columns:
+                print(f"Not loading {csv_file}: Critical column '{col}' is missing.")
+                return None
+        return df
+    except ValueError as e:
+        print(f"Could not load {csv_file}: Missing required columns. {e}")
+        return None
+    except Exception as e:
+        print(f"Error loading {csv_file}: {e}")
+        return None
+
+
+def save_df_to_csv(df: pd.DataFrame, file_name: str = "file.csv") -> bool:
+    try:
+        folder_path = Path("relative/path/to/nested_folder")
+        folder_path.mkdir(parents=True, exist_ok=True)
+        df.to_csv(
+            file_name,
+            index=False,
+            quoting=csv.QUOTE_NONNUMERIC,
+            encoding="utf-8",
+        )
+        return True
+    except Exception as e:
+        return False
+
+
+def combine_df(*dfs: pd.DataFrame) -> Optional[pd.DataFrame]:
+    # Ensure we only process actual DataFrames
+    valid_dfs = [df for df in dfs if isinstance(df, pd.DataFrame) and not df.empty]
+
+    if not valid_dfs:
+        return None
+
+    # Reduce using combine_first
+    combined = reduce(lambda left, right: left.combine_first(right), valid_dfs)
+
+    # We only reset the index if it actually has a name (like 'pl_name')
+    # This prevents creating a column named 'index' from a default RangeIndex
+    if combined.index.name:
+        return combined.reset_index()
+    return combined
+
+
+def combine_csv(
+    *csv_files: str, required_cols: list[str] = ["pl_name"]
+) -> Optional[pd.DataFrame]:
+    df_list = []
+
+    for cf in csv_files:
+        df = load_csv_to_df(cf, required_cols=required_cols)
+        if df is not None:
+            # We set the index here to guarantee alignment by planet name
+            df_list.append(df.set_index("pl_name"))
+
+    return combine_df(*df_list)
