@@ -169,11 +169,6 @@ def compute_surface_gravity(df: pd.DataFrame) -> pd.DataFrame:
     df["ppld_surf_grav_ms2"] = g.round(4)
     df["ppld_surf_grav_earth"] = (g / G_EARTH).round(4)
 
-    M_err1 = df["ppld_mass_kg_err1"]
-    M_err2 = df["ppld_mass_kg_err2"]
-    R_err1 = df["ppld_radius_m_err1"]
-    R_err2 = df["ppld_radius_m_err2"]
-
     # --- UPPER BOUND (Maximum Gravity) ---
     # To maximize g, we need the largest Mass and the smallest Radius.
     # Since Radius_err2 is negative, R + R_err2 makes the denominator smaller.
