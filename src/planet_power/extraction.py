@@ -12,51 +12,10 @@ from planet_power.constants import (
     DATA_DIR,
     RAW_DATA_FILE_TEMPLATE,
 )
+from planet_power.helpers import apply_filter_rules
 
 # from planet_power.format import format_workbook
 from planet_power.visualization import save_scatter_png
-
-
-def apply_filter_rules(
-    df: pd.DataFrame,
-    filter_rules: list[tuple[str, str]] | None = None,
-) -> pd.DataFrame:
-    """
-    Apply a list of (column, regex) exclusion rules to a DataFrame.
-
-    Rows where the column value matches the regex are removed. Rules
-    referencing columns not present in the DataFrame are skipped with a
-    warning rather than raising an exception, so that the remaining rules
-    still execute.
-
-    Parameters
-    ----------
-    df : DataFrame to filter.
-    filter_rules : List of (column_name, regex_pattern) tuples. Rows where
-        column_name matches regex_pattern are excluded. Pass None to skip
-        filtering entirely.
-
-    Returns
-    -------
-    Filtered DataFrame (or the original if filter_rules is None or empty).
-    """
-    if filter_rules is None:
-        return df
-    active_rules: list[tuple[str, str]] = []
-    for col_name, pattern in filter_rules:
-        if col_name not in df.columns:
-            print(
-                f"  Warning: filter rule skipped — column '{col_name}' not in DataFrame"
-            )
-        else:
-            active_rules.append((col_name, pattern))
-    if not active_rules:
-        return df
-    mask = pd.Series([True] * len(df), index=df.index)
-    for col_name, pattern in active_rules:
-        matches = df[col_name].astype(str).str.contains(pattern, regex=True, na=False)
-        mask = mask & ~matches
-    return df[mask]
 
 
 def combine_and_extract_and_graph(

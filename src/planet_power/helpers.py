@@ -78,14 +78,16 @@ def get_column_list(patterns: list[str]) -> list[str]:
     result: list[str] = []
     seen: set[str] = set()
 
-    def process_pattern(p, allow_recursive: bool = True) -> None:
+    def process_pattern(
+        p: str | list[str] | tuple[str], allow_recursive: bool = True
+    ) -> None:
         # Handle nested lists from argparse (fixes the AttributeError)
         if isinstance(p, (list, tuple)):
             for item in p:
                 process_pattern(item, allow_recursive)
             return
 
-        p = p.strip()
+        p = p.strip()  # type: ignore[union-attr]
         if not p:
             return
 
@@ -162,10 +164,11 @@ def load_csv_to_df(
 
 def save_df_to_csv(df: pd.DataFrame, file_name: str = "file.csv") -> bool:
     try:
-        folder_path = Path("relative/path/to/nested_folder")
+        target_path = Path(file_name).resolve()
+        folder_path = target_path.parent
         folder_path.mkdir(parents=True, exist_ok=True)
         df.to_csv(
-            file_name,
+            target_path,
             index=False,
             quoting=csv.QUOTE_NONNUMERIC,
             encoding="utf-8",
@@ -186,26 +189,27 @@ def save_df_to_csv(df: pd.DataFrame, file_name: str = "file.csv") -> bool:
 
 
 def combine_df(*dfs: pd.DataFrame) -> Optional[pd.DataFrame]:
-    # Ensure we only process actual DataFrames
-    valid_dfs = [df for df in dfs if isinstance(df, pd.DataFrame) and not df.empty]
+    # Pylance knows they are DataFrames because of the type hint above.
+    # We only need to check if they are empty at runtime.
+    valid_dfs = [df for df in dfs if not df.empty]
 
     if not valid_dfs:
         return None
 
     # Reduce using combine_first
-    combined = reduce(lambda left, right: left.combine_first(right), valid_dfs)
+    combined: pd.DataFrame = reduce(
+        lambda left, right: left.combine_first(right), valid_dfs
+    )
 
-    # We only reset the index if it actually has a name (like 'pl_name')
-    # This prevents creating a column named 'index' from a default RangeIndex
     if combined.index.name:
         return combined.reset_index()
     return combined
 
 
 def combine_csv_files(
-    index_col: str = "pl_name", *csv_files: str, required_cols: list[str] = []
+    index_col: str = "pl_name", required_cols: list[str] = [], *csv_files: str
 ) -> Optional[pd.DataFrame]:
-    df_list = []
+    df_list: list[pd.DataFrame] = []
 
     for cf in csv_files:
         df = load_csv_to_df(
@@ -224,4 +228,47 @@ def combine_csv_files(
 
 
 def extract_columns(columns: list[str], df: pd.DataFrame) -> pd.DataFrame:
-    return df[columns].copy
+    result = df[columns].copy()
+    return result
+
+
+def apply_filter_rules(
+    df: pd.DataFrame,
+    filter_rules: list[tuple[str, str]] | None = None,
+) -> pd.DataFrame:
+    """
+    Apply a list of (column, regex) exclusion rules to a DataFrame.
+
+    Rows where the column value matches the regex are removed. Rules
+    referencing columns not present in the DataFrame are skipped with a
+    warning rather than raising an exception, so that the remaining rules
+    still execute.
+
+    Parameters
+    ----------
+    df : DataFrame to filter.
+    filter_rules : List of (column_name, regex_pattern) tuples. Rows where
+        column_name matches regex_pattern are excluded. Pass None to skip
+        filtering entirely.
+
+    Returns
+    -------
+    Filtered DataFrame (or the original if filter_rules is None or empty).
+    """
+    if filter_rules is None:
+        return df
+    active_rules: list[tuple[str, str]] = []
+    for col_name, pattern in filter_rules:
+        if col_name not in df.columns:
+            print(
+                f"  Warning: filter rule skipped — column '{col_name}' not in DataFrame"
+            )
+        else:
+            active_rules.append((col_name, pattern))
+    if not active_rules:
+        return df
+    mask = pd.Series([True] * len(df), index=df.index)
+    for col_name, pattern in active_rules:
+        matches = df[col_name].astype(str).str.contains(pattern, regex=True, na=False)
+        mask = mask & ~matches
+    return df[mask]

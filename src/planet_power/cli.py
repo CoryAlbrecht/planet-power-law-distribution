@@ -15,6 +15,7 @@ from planet_power.constants import (
 )
 from planet_power.extraction import combine_and_extract_and_graph
 from planet_power.helpers import (
+    apply_filter_rules,
     combine_csv_files,
     extract_columns,
     get_column_list,
@@ -31,6 +32,33 @@ def _validate_tag(tag: str) -> str:
             f"Invalid tag '{tag}' - only alphanumeric, underscore, hyphen, colon allowed"
         )
     return tag
+
+
+myargs: argparse.ArgumentParser = argparse.ArgumentParser(
+    description="Fetch exoplanet data from NASA Exoplanet Archive and compute surface gravity."
+)
+
+
+def cli_parser():
+    global_group = myargs.add_argument_group("Global Options")
+    # Subparsers for commands
+    subparsers = myargs.add_subparsers(
+        title="Commands", dest="command", required=True
+    )  # required=True makes sure a command is always provided
+    #
+    extrahelp_parser = subparsers.add_parser(
+        "extrahelp", help="Show extra help for some of the commands and options"
+    )
+    #
+    retrieve_parser = subparsers.add_parser(
+        "init", help="Retrieve data from the NASA Exoplanet Archive."
+    )
+    retrieve_parser.add_argument(
+        "-p",
+        "--pscomppars",
+        default=True,
+        help="Use the 'pscomppars' data table instead of the 'ps' data table.",
+    )
 
 
 def main() -> None:
@@ -145,7 +173,7 @@ def main() -> None:
         col, pattern = arg.split(":", 1)
         filter_rules.append((col, pattern))
 
-    if not args.retrieve and not args.split and not args.extract and not args.compute:
+    if not args.retrieve and not args.split and not args.extract and not args.calculate:
         parser.print_help()
         return
 
@@ -161,8 +189,7 @@ def main() -> None:
             df = load_csv_to_df(csv_file=raw_data_file, encoding="utf-8")
         if df is not None:
             df_extras = calculate_extras(df, data_table=data_table)
-            success = save_df_to_csv(df_extras, calculated_data_file)
-            if success:
+            if save_df_to_csv(df_extras, calculated_data_file):
                 print(
                     f"Calculated extra data saved to '{os.path.relpath(calculated_data_file)}'."
                 )
@@ -177,17 +204,22 @@ def main() -> None:
         if columns_list == []:
             print("No columns to extract were given.")
             return
-        df_combined = combine_csv_files(raw_data_file, calculated_data_file)
-        if df_combined is None:
-            print(f"Unable to combine data files.")
-            return
-        df_extracted = extract_columns(columns_list, df_combined)
-        success = save_df_to_csv(
-            df_extracted,
-            os.path.join(
-                DATA_DIR, f"extracted{'.'+args.tag if args.tag != '' else ''}.csv"
-            ),
+        df_combined = combine_csv_files(
+            "pl_name", [], raw_data_file, calculated_data_file
         )
+        if df_combined is None:
+            print("Unable to combine data files.")
+            return
+        print(f"Combined dataset has {len(df_combined)} records.")
+        df_filtered = apply_filter_rules(df_combined, filter_rules)
+        print(f"Filtered dataset has {len(df_filtered)} records.")
+        df_extracted = extract_columns(columns_list, df_filtered)
+        print(f"Extracted dataset has {len(df_extracted)} records.")
+        extract_file = os.path.join(
+            DATA_DIR, f"extracted{f'.{args.tag}' if args.tag != '' else ''}.csv"
+        )
+        if save_df_to_csv(df_extracted, extract_file):
+            print(f"Extracted data saved to {os.path.relpath(extract_file)}")
 
     if args.split:
         combine_and_extract_and_graph(

@@ -33,6 +33,8 @@
 			"titleBar.inactiveBackground": "#73be6a99",
 			"titleBar.inactiveForeground": "#15202b99"
 		},
-		"peacock.color": "#73be6a"
+		"peacock.color": "#73be6a",
+		"cSpell.caseSensitive": true,
+		"cSpell.customDictionaries": {}
 	}
 }
