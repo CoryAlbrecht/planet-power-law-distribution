@@ -175,16 +175,19 @@ def main() -> None:
         description="Fetch exoplanet data from NASA Exoplanet Archive and compute surface gravity."
     )
     parser.add_argument(
-        "-r",
-        "--retrieve",
-        action="store_true",
-        help="Retrieve data from NASA Exoplanet Archive",
-    )
-    parser.add_argument(
         "-c",
         "--calculate",
         action="store_true",
         help="Create extra CSV file with calculated values not in the NASA Exoplanet Archive data",
+    )
+    parser.add_argument(
+        "-C",
+        "--column",
+        nargs="+",
+        action="append",
+        default=[],
+        metavar="COLUMN|REGEX",
+        help="Exact name of a column ore a regular expression to match multiple. Can be used multiple times.",
     )
     parser.add_argument(
         "-e",
@@ -202,18 +205,33 @@ def main() -> None:
         help="Filter rows where COLUMN matches REGEX. Can be used multiple times.",
     )
     parser.add_argument(
-        "-C",
-        "--column",
-        nargs="+",
-        action="append",
-        default=[],
-        metavar="COLUMN|REGEX",
-        help="Exact name of a column ore a regular expression to match multiple. Can be used multiple times.",
-    )
-    parser.add_argument(
         "--help-columns",
         action="store_true",
         help="List all the available columns",
+    )
+    parser.add_argument(
+        "-i",
+        "--image",
+        action="store_true",
+        help="Creates a scatter plot from a CSV data file",
+    )
+    parser.add_argument(
+        "-p",
+        "--pscomppars",
+        action="store_true",
+        help="Use the 'pscomppars' table from NASA Exoplanet Archive instead of 'ps'",
+    )
+    parser.add_argument(
+        "-r",
+        "--retrieve",
+        action="store_true",
+        help="Retrieve data from NASA Exoplanet Archive",
+    )
+    parser.add_argument(
+        "-R",
+        "--refresh",
+        action="store_true",
+        help="Force refresh of raw data from NASA Exoplanet Archive",
     )
     parser.add_argument(
         "-t",
@@ -224,38 +242,20 @@ def main() -> None:
         help="Tag to append to split output filenames (alphanumeric, underscore, hyphen, colon)",
     )
     parser.add_argument(
-        "-i",
-        "--image",
-        action="store_true",
-        help="Creates a scatter plot from a CSV data file",
-    )
-    parser.add_argument(
         "-x",
-        "--x-column-family",
+        "--x-col-set",
         type=_validate_column_family,
         default=None,
-        metavar="COLUMN_FAMILY",
+        metavar="COL_SET",
         help="Select a group of columns to use as the X-axis data in a scatter plot",
     )
     parser.add_argument(
         "-y",
-        "--y-column-family",
+        "--y-col-set",
         type=_validate_column_family,
         default=None,
-        metavar="COLUMN_FAMILY",
+        metavar="COL_SET",
         help="Select a group of columns to use as the Y-axis data in a scatter plot",
-    )
-    parser.add_argument(
-        "-R",
-        "--refresh",
-        action="store_true",
-        help="Force refresh of raw data from NASA Exoplanet Archive",
-    )
-    parser.add_argument(
-        "-p",
-        "--pscomppars",
-        action="store_true",
-        help="Use the 'pscomppars' table from NASA Exoplanet Archive instead of 'ps'",
     )
 
     args = parser.parse_args()
