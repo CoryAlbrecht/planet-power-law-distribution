@@ -44,10 +44,10 @@ def combine_and_extract_and_graph(
     tag: str = "",
 ) -> pd.DataFrame | None:
     if columns is []:
-        print(f"No columns were given to extract from data for scatter plot values.")
+        print("No columns were given to extract from data for scatter plot values.")
         return None
     if stem is None:
-        print(f"No file base name given to save scatter plot values as.")
+        print("No file base name given to save scatter plot values as.")
         return None
 
     raw_data_file = os.path.join(DATA_DIR, RAW_DATA_FILE_TEMPLATE.replace("%t", table))

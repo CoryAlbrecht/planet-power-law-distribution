@@ -31,12 +31,11 @@ def get_latest_datafile(table: str = "ps", tag: str = "") -> list[str]:
         ),
     )
     print(f"Search for file '{data_file_name}'")
-    existing = sorted(
+    return sorted(
         glob.glob(data_file_name),
         key=os.path.getmtime,
         reverse=True,
     )
-    return existing
 
 
 def list_available_columns() -> None:
@@ -57,21 +56,30 @@ def list_available_columns() -> None:
     console.print(table)
 
 
-def get_column_list(patterns: list[str]) -> list[str]:
+def get_column_list(patterns: list[str], *extra_lists: list[str]) -> list[str]:
     """Match column names using exact matches or regex patterns across all sources.
 
     Parameters
     ----------
     patterns : list[str]
         List of patterns, regex (~), or file paths (@).
+    *extra_lists : list[str]
+        Additional lists of column names to search in. If empty, uses the default
+        pool of ALL_PSCOMPPARS_COLUMNS, ALL_PS_COLUMNS, and ALL_COMPUTED_COLUMNS.
 
     Returns
     -------
     list[str]
         Deduplicated list of matching column names.
     """
-    # 1. Create a deduplicated search pool from all sources
-    raw_pool = ALL_PSCOMPPARS_COLUMNS + ALL_PS_COLUMNS + ALL_COMPUTED_COLUMNS
+    # Create search pool from extra_lists or default columns
+    if extra_lists:
+        raw_pool: list[str] = []
+        for lst in extra_lists:
+            raw_pool.extend(lst)
+    else:
+        raw_pool = ALL_PSCOMPPARS_COLUMNS + ALL_PS_COLUMNS + ALL_COMPUTED_COLUMNS
+
     ordered_unique_pool = list(dict.fromkeys(raw_pool))
     lookup_set = set(ordered_unique_pool)
 
@@ -135,7 +143,7 @@ def get_column_list(patterns: list[str]) -> list[str]:
 
 def load_csv_to_df(
     csv_file: str, required_cols: list[str] = ["pl_name"], encoding: str = "utf-8"
-) -> Optional[pd.DataFrame]:
+) -> Optional[pd.DataFrame]:  # sourcery skip: default-mutable-arg
     try:
         # This will raise a ValueError if any item in required_cols is missing
         must_have_cols = required_cols
@@ -188,11 +196,10 @@ def save_df_to_csv(df: pd.DataFrame, file_name: str = "file.csv") -> bool:
         return False
 
 
-def combine_df(*dfs: pd.DataFrame) -> Optional[pd.DataFrame]:
-    # Pylance knows they are DataFrames because of the type hint above.
-    # We only need to check if they are empty at runtime.
-    valid_dfs = [df for df in dfs if not df.empty]
-
+def combine_df(*dfs: pd.DataFrame | None) -> Optional[pd.DataFrame]:
+    # Filter out None values and empty DataFrames
+    valid_dfs: list[pd.DataFrame] = []
+    valid_dfs.extend(df for df in dfs if df is not None and not df.empty)
     if not valid_dfs:
         return None
 
@@ -201,14 +208,12 @@ def combine_df(*dfs: pd.DataFrame) -> Optional[pd.DataFrame]:
         lambda left, right: left.combine_first(right), valid_dfs
     )
 
-    if combined.index.name:
-        return combined.reset_index()
-    return combined
+    return combined.reset_index() if combined.index.name else combined
 
 
 def combine_csv_files(
     index_col: str = "pl_name", required_cols: list[str] = [], *csv_files: str
-) -> Optional[pd.DataFrame]:
+) -> Optional[pd.DataFrame]:  # sourcery skip: default-mutable-arg
     df_list: list[pd.DataFrame] = []
 
     for cf in csv_files:
@@ -228,8 +233,7 @@ def combine_csv_files(
 
 
 def extract_columns(columns: list[str], df: pd.DataFrame) -> pd.DataFrame:
-    result = df[columns].copy()
-    return result
+    return df[columns].copy()
 
 
 def apply_filter_rules(

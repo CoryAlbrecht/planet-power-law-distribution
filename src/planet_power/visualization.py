@@ -9,11 +9,12 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from typing import Optional, Union, List, Tuple, Any
+from typing import Optional, List, Tuple, Any
 from numpy.typing import NDArray
 from matplotlib import rcParams
 from matplotlib.colors import to_rgba
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+# from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 # Force font configuration for Noto Sans Math and Noto Sans
 # This ensures the \u2A40 intersection character renders correctly. [cite: 2026-01-25]
@@ -152,14 +153,15 @@ def save_scatter_png(
             (wx, x_hexcolor, "X Weight", -0.02),
             (wy, y_hexcolor, "Y Weight", -0.22),
         ]:
-            ax_ins = inset_axes(
-                ax,
-                width="20%",
-                height="15%",
-                loc="upper left",
-                bbox_to_anchor=(0.02, offset, 1, 1),
-                bbox_transform=ax.transAxes,
-            )
+            # ax_ins = inset_axes(
+            #     ax,
+            #     width="20%",
+            #     height="15%",
+            #     loc="upper left",
+            #     bbox_to_anchor=(0.02, offset, 1, 1),
+            #     bbox_transform=ax.transAxes,
+            # )
+            ax_ins = ax.inset_axes([0.02, offset, 0.2, 0.15])
             counts, _ = np.histogram(weight, bins=bins)
             ax_ins.bar(
                 bins[:-1], counts, width=0.08, color=color, align="edge", alpha=0.8

@@ -6,17 +6,21 @@ import argparse
 import os
 import re
 from importlib.metadata import version
+from pathlib import Path
+
+import pandas as pd
 
 from planet_power.compute import calculate_extras
 from planet_power.constants import (
-    DATA_DIR,
-    RAW_DATA_FILE_TEMPLATE,
     CALCULATED_DATA_FILE_TEMPLATE,
+    DATA_DIR,
+    EXTRACTED_DATA_FILE_TEMPLATE,
+    RAW_DATA_FILE_TEMPLATE,
 )
 from planet_power.extraction import combine_and_extract_and_graph
 from planet_power.helpers import (
     apply_filter_rules,
-    combine_csv_files,
+    combine_df,
     extract_columns,
     get_column_list,
     list_available_columns,
@@ -24,41 +28,141 @@ from planet_power.helpers import (
     save_df_to_csv,
 )
 from planet_power.retrieve import retrieve_exoplanet_data
+from planet_power.visualization import save_scatter_png
 
 
 def _validate_tag(tag: str) -> str:
-    if tag and not re.match(r"^[a-zA-Z0-9_\-:]+$", tag):
+    if tag and not re.match(r"^[a-zA-Z0-9_:-]+$", tag):
         raise argparse.ArgumentTypeError(
             f"Invalid tag '{tag}' - only alphanumeric, underscore, hyphen, colon allowed"
         )
     return tag
 
 
-myargs: argparse.ArgumentParser = argparse.ArgumentParser(
-    description="Fetch exoplanet data from NASA Exoplanet Archive and compute surface gravity."
-)
+def _validate_column_family(column_family: str) -> str:
+    cols: list[str] = get_column_list([f"~{column_family}.*"])
+    if (
+        f"{column_family}_err1" in cols
+        and f"{column_family}_err2" in cols
+        and f"{column_family}_weight" in cols
+    ):
+        return column_family
+    else:
+        raise argparse.ArgumentTypeError(
+            f"Invalid column family '{column_family}', no *_err1, *err2, or *_weight accessory columns found"
+        )
 
 
-def cli_parser():
-    global_group = myargs.add_argument_group("Global Options")
-    # Subparsers for commands
-    subparsers = myargs.add_subparsers(
-        title="Commands", dest="command", required=True
-    )  # required=True makes sure a command is always provided
-    #
-    extrahelp_parser = subparsers.add_parser(
-        "extrahelp", help="Show extra help for some of the commands and options"
+def cli_calculate(
+    df_raw: pd.DataFrame | None,
+    raw_data_file: str,
+    calculated_data_file: str,
+    data_table: str = "ps",
+) -> pd.DataFrame | None:
+    df_raw_loaded = None
+    if df_raw is None:
+        df_raw_loaded = load_csv_to_df(csv_file=raw_data_file, encoding="utf-8")
+    else:
+        df_raw_loaded = df_raw
+    if df_raw_loaded is not None:
+        df_extras = calculate_extras(df_raw_loaded, data_table=data_table)
+        if save_df_to_csv(df_extras, calculated_data_file):
+            print(
+                f"Calculated extra data saved to '{os.path.relpath(calculated_data_file)}'."
+            )
+            return df_extras
+        else:
+            print(
+                f"Error! Could not save calculated extra data to '{os.path.relpath(calculated_data_file)}'."
+            )
+            return None
+    else:
+        print(f"Unable to load file '{os.path.relpath(raw_data_file)}'.")
+        return None
+
+
+def cli_extract(
+    df_raw: pd.DataFrame | None,
+    raw_data_file: str,
+    df_extras: pd.DataFrame | None,
+    calculated_data_file: str,
+    columns_list: list[str] = [],
+    filter_rules: list[tuple[str, str]] = [],
+    tag: str = "",
+) -> pd.DataFrame | None:  # sourcery skip: default-mutable-arg
+    if not columns_list:
+        print("No columns to extract were given.")
+        return None
+
+    if df_raw is not None:
+        df_one = df_raw
+    else:
+        df_one = load_csv_to_df(raw_data_file, required_cols=["pl_name"])
+
+    if df_extras is not None:
+        df_two = df_extras
+    else:
+        df_two = load_csv_to_df(calculated_data_file, required_cols=["pl_name"])
+
+    # df_combined = combine_csv_files("pl_name", [], raw_data_file, calculated_data_file)
+    df_combined = combine_df(df_one, df_two)
+
+    if df_combined is None:
+        print("Unable to combine data files.")
+        return
+    print(f"Combined dataset has {len(df_combined)} records.")
+    df_filtered = apply_filter_rules(df_combined, filter_rules)
+    print(f"Filtered dataset has {len(df_filtered)} records.")
+    df_extracted = extract_columns(columns_list, df_filtered)
+    print(f"Extracted dataset has {len(df_extracted)} records.")
+    extract_file = os.path.join(
+        DATA_DIR, EXTRACTED_DATA_FILE_TEMPLATE.replace("%T", f"{tag and '.' + tag}")
     )
-    #
-    retrieve_parser = subparsers.add_parser(
-        "init", help="Retrieve data from the NASA Exoplanet Archive."
+    if save_df_to_csv(df_extracted, extract_file):
+        print(f"Extracted data saved to {os.path.relpath(extract_file)}")
+    return df_extracted
+
+
+def cli_image(
+    df_extracted: pd.DataFrame | None,
+    extracted_file: str,
+    x_col_fam: str | None,
+    y_col_fam: str | None,
+):
+    if not x_col_fam:
+        print("You must set an X-axis column family with --x-column-family/-x")
+        return
+
+    if not y_col_fam:
+        print("You must set an Y-axis column family with --y-column-family/-y")
+        return
+
+    x_cols: list[str] = get_column_list([f"~{x_col_fam}.*"])
+    y_cols: list[str] = get_column_list([f"~{y_col_fam}.*"])
+    all_cols: list[str] = x_cols + y_cols
+
+    df_pull = df_extracted
+    if df_pull is None:
+        df_pull = load_csv_to_df(extracted_file, required_cols=all_cols)
+
+    if df_pull is None:
+        return
+
+    png_path = Path(extracted_file)
+    png_file = os.path.join(png_path.parent, png_path.stem + ".png")
+    save_scatter_png(
+        df=df_pull,
+        output_path=png_file,
+        x_col=f"{x_col_fam}",
+        x_err_plus_col=f"{x_col_fam}_err1",
+        x_err_minus_col=f"{x_col_fam}_err2",
+        x_weight_col=f"{x_col_fam}_weight",
+        y_col=f"{y_col_fam}",
+        y_err_plus_col=f"{y_col_fam}_err1",
+        y_err_minus_col=f"{y_col_fam}_err2",
+        y_weight_col=f"{y_col_fam}_weight",
     )
-    retrieve_parser.add_argument(
-        "-p",
-        "--pscomppars",
-        default=True,
-        help="Use the 'pscomppars' data table instead of the 'ps' data table.",
-    )
+    return
 
 
 def main() -> None:
@@ -83,18 +187,11 @@ def main() -> None:
         help="Create extra CSV file with calculated values not in the NASA Exoplanet Archive data",
     )
     parser.add_argument(
-        "-s",
-        "--split",
-        action="store_true",
-        help="Create split files: mass-vs-radius, mass-vs-density, mass-vs-surface-gravity",
-    )
-    parser.add_argument(
         "-e",
         "--extract",
         action="store_true",
         help="Combine data files and extract specific columns to a new data file",
     )
-
     parser.add_argument(
         "-f",
         "--filter",
@@ -118,7 +215,6 @@ def main() -> None:
         action="store_true",
         help="List all the available columns",
     )
-
     parser.add_argument(
         "-t",
         "--tag",
@@ -127,14 +223,34 @@ def main() -> None:
         metavar="TAG",
         help="Tag to append to split output filenames (alphanumeric, underscore, hyphen, colon)",
     )
-
+    parser.add_argument(
+        "-i",
+        "--image",
+        action="store_true",
+        help="Creates a scatter plot from a CSV data file",
+    )
+    parser.add_argument(
+        "-x",
+        "--x-column-family",
+        type=_validate_column_family,
+        default=None,
+        metavar="COLUMN_FAMILY",
+        help="Select a group of columns to use as the X-axis data in a scatter plot",
+    )
+    parser.add_argument(
+        "-y",
+        "--y-column-family",
+        type=_validate_column_family,
+        default=None,
+        metavar="COLUMN_FAMILY",
+        help="Select a group of columns to use as the Y-axis data in a scatter plot",
+    )
     parser.add_argument(
         "-R",
         "--refresh",
         action="store_true",
         help="Force refresh of raw data from NASA Exoplanet Archive",
     )
-
     parser.add_argument(
         "-p",
         "--pscomppars",
@@ -144,7 +260,9 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    df = None
+    df_raw = None
+    df_extras = None
+    df_extracted = None
 
     if args.help_columns:
         print()
@@ -160,6 +278,10 @@ def main() -> None:
     calculated_data_file = os.path.join(
         DATA_DIR, CALCULATED_DATA_FILE_TEMPLATE.replace("%t", data_table)
     )
+    extracted_file = os.path.join(
+        DATA_DIR,
+        EXTRACTED_DATA_FILE_TEMPLATE.replace("%T", f"{args.tag and '.' + args.tag}"),
+    )
     # get the columns
     columns_list = get_column_list(args.column)
 
@@ -173,101 +295,38 @@ def main() -> None:
         col, pattern = arg.split(":", 1)
         filter_rules.append((col, pattern))
 
-    if not args.retrieve and not args.split and not args.extract and not args.calculate:
+    if not args.retrieve and not args.extract and not args.calculate and not args.image:
         parser.print_help()
         return
 
     if args.retrieve:
-        df = retrieve_exoplanet_data(
+        df_raw = retrieve_exoplanet_data(
             columns=columns_list,
             force_refresh=args.refresh,
             pscomppars=args.pscomppars,
         )
 
     if args.calculate:
-        if df is None:
-            df = load_csv_to_df(csv_file=raw_data_file, encoding="utf-8")
-        if df is not None:
-            df_extras = calculate_extras(df, data_table=data_table)
-            if save_df_to_csv(df_extras, calculated_data_file):
-                print(
-                    f"Calculated extra data saved to '{os.path.relpath(calculated_data_file)}'."
-                )
-            else:
-                print(
-                    f"Error! Could not save calculated extra data to '{os.path.relpath(calculated_data_file)}'."
-                )
-        else:
-            print(f"Unable to load file '{raw_data_file}'.")
+        df_extras = cli_calculate(
+            df_raw, raw_data_file, calculated_data_file, data_table
+        )
 
     if args.extract:
-        if columns_list == []:
-            print("No columns to extract were given.")
-            return
-        df_combined = combine_csv_files(
-            "pl_name", [], raw_data_file, calculated_data_file
+        df_extracted = cli_extract(
+            df_raw,
+            raw_data_file,
+            df_extras,
+            calculated_data_file,
+            columns_list,
+            filter_rules,
+            args.tag,
         )
-        if df_combined is None:
-            print("Unable to combine data files.")
-            return
-        print(f"Combined dataset has {len(df_combined)} records.")
-        df_filtered = apply_filter_rules(df_combined, filter_rules)
-        print(f"Filtered dataset has {len(df_filtered)} records.")
-        df_extracted = extract_columns(columns_list, df_filtered)
-        print(f"Extracted dataset has {len(df_extracted)} records.")
-        extract_file = os.path.join(
-            DATA_DIR, f"extracted{f'.{args.tag}' if args.tag != '' else ''}.csv"
-        )
-        if save_df_to_csv(df_extracted, extract_file):
-            print(f"Extracted data saved to {os.path.relpath(extract_file)}")
-
-    if args.split:
-        combine_and_extract_and_graph(
-            columns=columns_list,
-            filter_rules=filter_rules,
-            stem="mass-vs-radius",
-            table=data_table,
-            tag=args.tag,
-            x_col="ppld_mass_kg",
-            x_err_plus_col="ppld_mass_kg_err1",
-            x_err_minus_col="ppld_mass_kg_err2",
-            x_weight_col="ppld_mass_weight",
-            x_hexcolor="#ff0000",
-            x_axis_min=1e21,
-            x_axis_max=1e30,
-            y_col="ppld_radius_m",
-            y_err_plus_col="ppld_radius_m_err1",
-            y_err_minus_col="ppld_radius_m_err2",
-            y_weight_col="ppld_radius_weight",
-            y_hexcolor="#0000ff",
-            y_axis_min=1e05,
-            y_axis_max=1e09,
-            width_px=3840,
-            height_px=2160,
-            dpi=150,
-            error_cross=False,
-        )
-        combine_and_extract_and_graph(
-            columns=columns_list,
-            filter_rules=filter_rules,
-            stem="mass-vs-density",
-            table=data_table,
-            tag=args.tag,
-            x_col="ppld_mass_kg",
-            x_err_plus_col="ppld_mass_kg_err1",
-            x_err_minus_col="ppld_mass_kg_err2",
-            x_weight_col="ppld_mass_weight",
-            x_hexcolor="#ff0000",
-            x_axis_min=1e21,
-            x_axis_max=1e30,
-            y_col="pl_dens",
-            y_err_plus_col="pl_denserr1",
-            y_err_minus_col="pl_denserr2",
-            y_weight_col="ppld_density_weight",
-            y_hexcolor="#00ff00",
-            y_axis_min=1e-3,
-            y_axis_max=2010,
-            error_cross=False,
+    if args.image:
+        cli_image(
+            df_extracted,
+            extracted_file,
+            args.x_column_family,
+            args.y_column_family,
         )
 
 

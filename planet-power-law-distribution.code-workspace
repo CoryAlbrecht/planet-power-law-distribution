@@ -34,7 +34,6 @@
 			"titleBar.inactiveForeground": "#15202b99"
 		},
 		"peacock.color": "#73be6a",
-		"cSpell.caseSensitive": true,
-		"cSpell.customDictionaries": {}
+		"sourcery.ruleType.comments": false
 	}
 }

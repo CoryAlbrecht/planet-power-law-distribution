@@ -8,6 +8,7 @@ import pandas as pd
 
 RAW_DATA_FILE_TEMPLATE = "%t-raw-data.csv"
 CALCULATED_DATA_FILE_TEMPLATE = "%t-computed.csv"
+EXTRACTED_DATA_FILE_TEMPLATE = "extracted%T.csv"
 MAX_AGE = timedelta(weeks=1)
 
 DATA_DIR = os.path.join(

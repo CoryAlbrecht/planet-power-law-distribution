@@ -35,5 +35,6 @@
   },
   "cSpell.words": [
     "global_group"
-  ]
+  ],
+  "sourcery.ruleType.comments": false
 }
