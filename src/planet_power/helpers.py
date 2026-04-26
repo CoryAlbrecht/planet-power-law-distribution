@@ -14,7 +14,7 @@ from rich.console import Console
 from rich.table import Table
 
 from planet_power.constants import (
-    ALL_COMPUTED_COLUMNS,
+    ALL_CALCULATED_COLUMNS,
     ALL_PS_COLUMNS,
     ALL_PSCOMPPARS_COLUMNS,
     DATA_DIR,
@@ -47,11 +47,13 @@ def list_available_columns() -> None:
         header_style="dim",
         box=box.SQUARE,
     )
-    table.add_column("Table PS", no_wrap=False)
-    table.add_column("Table PSCompPars", no_wrap=False)
+    table.add_column("Exoplanet Archive Table PS", no_wrap=False)
+    table.add_column("Exoplanet Archive Table PSCompPars", no_wrap=False)
+    table.add_column("Local Calculated Columns", no_wrap=False)
     ps_list = ", ".join(ALL_PS_COLUMNS)
     pscomppars_list = ", ".join(ALL_PSCOMPPARS_COLUMNS)
-    row = [ps_list, pscomppars_list]
+    calculated_list = ",".join(ALL_CALCULATED_COLUMNS)
+    row = [ps_list, pscomppars_list, calculated_list]
     table.add_row(*row)
     console.print(table)
 
@@ -78,7 +80,7 @@ def get_column_list(patterns: list[str], *extra_lists: list[str]) -> list[str]:
         for lst in extra_lists:
             raw_pool.extend(lst)
     else:
-        raw_pool = ALL_PSCOMPPARS_COLUMNS + ALL_PS_COLUMNS + ALL_COMPUTED_COLUMNS
+        raw_pool = ALL_PSCOMPPARS_COLUMNS + ALL_PS_COLUMNS + ALL_CALCULATED_COLUMNS
 
     ordered_unique_pool = list(dict.fromkeys(raw_pool))
     lookup_set = set(ordered_unique_pool)

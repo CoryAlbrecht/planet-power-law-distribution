@@ -1085,7 +1085,7 @@ ALL_PS_COLUMNS = [
     "sy_kmagerr2",
 ]
 
-ALL_COMPUTED_COLUMNS = [
+ALL_CALCULATED_COLUMNS = [
     "ppld_mass_kg",
     "ppld_mass_kg_err1",
     "ppld_mass_kg_err2",

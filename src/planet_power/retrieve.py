@@ -60,6 +60,7 @@ def retrieve_exoplanet_data(
             print(
                 f"Could not load cached CSV file '{os.path.relpath(raw_data_file)}', so trying to download it again."
             )
+    # column selection
     cols: str = "*"
     if not columns:
         if pscomppars:
@@ -68,6 +69,7 @@ def retrieve_exoplanet_data(
             cols = ",".join(USUAL_PS_COLUMNS)
     else:
         cols = ",".join(columns)
+    # select where ckause
     where = ""
     if pscomppars:
         where = f" WHERE {USUAL_PSCOMPPARS_WHERE}"

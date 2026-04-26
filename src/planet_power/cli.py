@@ -7,9 +7,11 @@ import os
 import re
 from importlib.metadata import version
 from pathlib import Path
+from typing import Dict, Optional, Tuple
 
 import pandas as pd
 
+from planet_power.analyze import run_bayesian_slice_weighted
 from planet_power.compute import calculate_extras
 from planet_power.constants import (
     CALCULATED_DATA_FILE_TEMPLATE,
@@ -17,7 +19,6 @@ from planet_power.constants import (
     EXTRACTED_DATA_FILE_TEMPLATE,
     RAW_DATA_FILE_TEMPLATE,
 )
-from planet_power.extraction import combine_and_extract_and_graph
 from planet_power.helpers import (
     apply_filter_rules,
     combine_df,
@@ -51,6 +52,11 @@ def _validate_column_family(column_family: str) -> str:
         raise argparse.ArgumentTypeError(
             f"Invalid column family '{column_family}', no *_err1, *err2, or *_weight accessory columns found"
         )
+
+
+def _validate_file(file_name: str) -> Path:
+    file_path = Path(file_name).resolve(strict=False)
+    return file_path
 
 
 def cli_calculate(
@@ -124,8 +130,11 @@ def cli_extract(
 
 
 def cli_image(
+    in_files: list[Path],
+    out_files: list[Path],
+    reg_min: float,
+    reg_max: float,
     df_extracted: pd.DataFrame | None,
-    extracted_file: str,
     x_col_fam: str | None,
     y_col_fam: str | None,
 ):
@@ -137,22 +146,44 @@ def cli_image(
         print("You must set an Y-axis column family with --y-column-family/-y")
         return
 
+    if not len(in_files):
+        print("No input CSV data file speicifed.")
+        return
+
+    if not in_files[0].exists():
+        print(f"Input CSV file '{str(in_files[0])}' not found.")
+        return
+
+    input_csv = str(in_files[0])
+
+    if not len(out_files):
+        output_png = f"{in_files[0].parent, in_files[0].stem}.png"
+    else:
+        output_png = str(out_files[0])
+
     x_cols: list[str] = get_column_list([f"~{x_col_fam}.*"])
     y_cols: list[str] = get_column_list([f"~{y_col_fam}.*"])
     all_cols: list[str] = x_cols + y_cols
 
     df_pull = df_extracted
     if df_pull is None:
-        df_pull = load_csv_to_df(extracted_file, required_cols=all_cols)
+        df_pull = load_csv_to_df(input_csv, required_cols=all_cols)
 
     if df_pull is None:
+        print(f"Unable to read from file '{input_csv}'.")
         return
 
-    png_path = Path(extracted_file)
-    png_file = os.path.join(png_path.parent, png_path.stem + ".png")
+    print(f"Starting bayesian regression for masses {reg_min} to {reg_max}...", end="")
+    trend: Optional[Dict[str, float]] = run_bayesian_slice_weighted(
+        df_pull,
+        reg_min,
+        reg_max,
+    )
+    print("... done.")
+
     save_scatter_png(
         df=df_pull,
-        output_path=png_file,
+        output_path=output_png,
         x_col=f"{x_col_fam}",
         x_err_plus_col=f"{x_col_fam}_err1",
         x_err_minus_col=f"{x_col_fam}_err2",
@@ -161,8 +192,18 @@ def cli_image(
         y_err_plus_col=f"{y_col_fam}_err1",
         y_err_minus_col=f"{y_col_fam}_err2",
         y_weight_col=f"{y_col_fam}_weight",
+        fit_params=trend,
     )
     return
+
+
+def cli_analyze(
+    in_files: list[Path],
+    out_files: list[Path],
+    x_col_fam: str | None,
+    y_col_fam: str | None,
+):
+    pass
 
 
 def main() -> None:
@@ -173,6 +214,12 @@ def main() -> None:
     print()
     parser = argparse.ArgumentParser(
         description="Fetch exoplanet data from NASA Exoplanet Archive and compute surface gravity."
+    )
+    parser.add_argument(
+        "-a",
+        "--analyze",
+        action="store_true",
+        help="Just do the analisys and print the output, no image output",
     )
     parser.add_argument(
         "-c",
@@ -214,6 +261,36 @@ def main() -> None:
         "--image",
         action="store_true",
         help="Creates a scatter plot from a CSV data file",
+    )
+    parser.add_argument(
+        "-I",
+        "--input-csv",
+        nargs="+",
+        type=_validate_file,
+        metavar="CSV_IN",
+        help="CSV file to read input data from",
+    )
+    parser.add_argument(
+        "-m",
+        "--regression-minimum",
+        type=float,
+        default=0,
+        help="Minimum mass data value for scatter plot regression testing",
+    )
+    parser.add_argument(
+        "-M",
+        "--regression-maximum",
+        type=float,
+        default=1e31,
+        help="Maximum mass data value for scatter plot regression testing",
+    )
+    parser.add_argument(
+        "-O",
+        "--output-csv",
+        nargs="+",
+        type=_validate_file,
+        metavar="CSV_IN",
+        help="CSV file to write output data to",
     )
     parser.add_argument(
         "-p",
@@ -295,7 +372,13 @@ def main() -> None:
         col, pattern = arg.split(":", 1)
         filter_rules.append((col, pattern))
 
-    if not args.retrieve and not args.extract and not args.calculate and not args.image:
+    if (
+        not args.analyze
+        and not args.retrieve
+        and not args.extract
+        and not args.calculate
+        and not args.image
+    ):
         parser.print_help()
         return
 
@@ -323,10 +406,20 @@ def main() -> None:
         )
     if args.image:
         cli_image(
+            args.input_csv,
+            args.output_csv,
+            args.regression_minimum,
+            args.regression_maximum,
             df_extracted,
-            extracted_file,
-            args.x_column_family,
-            args.y_column_family,
+            args.x_col_set,
+            args.y_col_set,
+        )
+    if args.analyze:
+        cli_analyze(
+            args.input_csv,
+            args.output_csv,
+            args.x_col_set,
+            args.y_col_set,
         )
 
 
