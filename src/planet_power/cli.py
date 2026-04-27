@@ -65,6 +65,12 @@ _ANALYZE_MULTIPLIERS: List[float] = [x / 10 for x in range(10, 100)]  # 1.0,... 
 # Parallelism cap (future: user-supplied)
 _MAX_WORKERS: int = 8
 
+# Restart each worker after this many slices to flush JAX's XLA compilation
+# cache and device-buffer pool.  Lower = more frequent restarts (more overhead
+# from re-importing JAX + deserialising the DataFrame) but tighter memory
+# ceiling.  At 20 tasks/worker the restart overhead is ~1-2 s per worker.
+_TASKS_PER_WORKER: int = 20
+
 # CSV columns written to output
 _OUTPUT_FIELDS: List[str] = [
     "slice_lower_limit",
@@ -126,8 +132,20 @@ def _worker_init(df_bytes: bytes) -> None:
 
 def _worker_task(lower: float, upper: float) -> Dict[str, float]:
     """Run one slice on the pre-loaded worker DataFrame."""
+    import gc
+
     assert _worker_df is not None, "Worker DataFrame was not initialised"
-    return run_numpyro_slice_weighted(_worker_df, lower, upper)
+    result = run_numpyro_slice_weighted(_worker_df, lower, upper)
+    # Clear JAX's JIT compilation cache (grows with each unique slice size N)
+    # and run Python GC to release any lingering JAX device buffers.
+    jax.clear_caches()
+    gc.collect()
+    return result
+
+
+def _worker_task_star(args: Tuple[float, float]) -> Dict[str, float]:
+    """Unpacking shim so pool.imap can call _worker_task with a single arg."""
+    return _worker_task(*args)
 
 
 # ── cli_analyze ────────────────────────────────────────────────────────────────
@@ -224,6 +242,11 @@ def cli_analyze(
     os.environ["JAX_LOG_COMPILES"] = "0"  # suppresses some XLA noise
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # suppresses the autotuner errors
     os.environ["JAX_PLATFORMS"] = "cpu"  # prevent 4 workers fighting over GPU RAM
+    # Switch JAX from the BFC pre-allocator (grabs memory and never returns it
+    # to the OS) to the platform allocator (frees memory when arrays are deleted).
+    # Must be set before JAX initialises in the worker — env vars are inherited
+    # by spawned child processes, so setting it here before Pool() is sufficient.
+    os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
 
     try:
         ctx = multiprocessing.get_context("spawn")
@@ -233,15 +256,17 @@ def cli_analyze(
             processes=_MAX_WORKERS,
             initializer=_worker_init,
             initargs=(df_bytes,),
+            # Restart each worker after _TASKS_PER_WORKER slices.
+            # This clears any JAX/XLA state that clear_caches() misses and
+            # gives a hard upper bound on per-worker memory growth.
+            maxtasksperchild=_TASKS_PER_WORKER,
         ) as pool:
-            # Submit all tasks up front; results arrive as workers finish.
-            futures = [
-                (lower, upper, pool.apply_async(_worker_task, args=(lower, upper)))
-                for lower, upper in slices
-            ]
-
-            for lower, upper, future in futures:
-                result = future.get()  # blocks until this specific slice is done
+            # imap submits tasks lazily (one at a time as workers become free)
+            # rather than queuing all N slices up front.  chunksize=1 ensures
+            # no extra tasks are sent to a worker until it signals it is ready.
+            for (lower, upper), result in zip(
+                slices, pool.imap(_worker_task_star, slices, chunksize=1)
+            ):
                 completed += 1
 
                 n = result.get("n", np.nan)

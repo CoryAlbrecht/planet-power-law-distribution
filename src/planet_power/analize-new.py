@@ -322,7 +322,6 @@ def run_numpyro_slice_weighted(
     # sigsqr — all JAX device buffers.  Python GC timing is unreliable for
     # JAX arrays, so we delete the dict and the MCMC object explicitly rather
     # than waiting for the frame to unwind.
-
     beta_arr: np.ndarray = np.array(samples["beta"])
     alpha_arr: np.ndarray = np.array(samples["alpha"])
     del samples  # frees x_true and all other latent-variable buffers
