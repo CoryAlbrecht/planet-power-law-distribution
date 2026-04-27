@@ -9,7 +9,6 @@ import multiprocessing
 import os
 import re
 import sys
-from functools import reduce
 from importlib.metadata import version
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple

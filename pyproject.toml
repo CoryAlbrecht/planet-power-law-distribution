@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "planet-power-law-distribution"
-version = "0.3.0"
+version = "0.4.0-dev0"
 description = "Exoplanet mass–radius–density–gravity dataset with Durand-Manterola classification"
 readme = "README.md"
 requires-python = ">=3.10"
