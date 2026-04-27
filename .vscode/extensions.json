@@ -21,5 +21,6 @@
     "ms-python.python",
     "ryu1kn.partial-diff",
     "christian-kohler.path-intellisense",
+    "snippington.snp-pandas-basic",
   ]
 }

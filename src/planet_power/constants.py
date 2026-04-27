@@ -7,11 +7,16 @@ from io import StringIO
 import pandas as pd
 
 RAW_DATA_FILE_TEMPLATE = "%t-raw-data.csv"
-COMPUTED_DATA_FILE_TEMPLATE = "%t-computed.csv"
+CALCULATED_DATA_FILE_TEMPLATE = "%t-computed.csv"
+EXTRACTED_DATA_FILE_TEMPLATE = "extracted%T.csv"
 MAX_AGE = timedelta(weeks=1)
 
 DATA_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data"
+)
+
+SCRIPT_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "scripts"
 )
 
 G = 6.67430e-11
@@ -28,7 +33,7 @@ DM_GRAVITY: dict[str, tuple[float, float]] = {
     "C": (4e-28, 1.0482),
 }
 
-TAP_BASE = "https://exoplanetarchive.ipac.caltech.edu/TAP/sync"
+EXOPLANET_ARCHIVE_TAP_BASE = "https://exoplanetarchive.ipac.caltech.edu/TAP/sync"
 
 USUAL_PS_WHERE = "pl_bmassj IS NOT NULL AND pl_radj IS NOT NULL AND pl_dens IS NOT NULL"
 
@@ -36,7 +41,7 @@ USUAL_PSCOMPPARS_WHERE = (
     "pl_bmassj IS NOT NULL AND pl_radj IS NOT NULL AND pl_dens IS NOT NULL"
 )
 
-ALL_PSCOMPPARS_COLUMNS = [
+ALL_PSCOMPPARS_COLUMNS: list[str] = [
     "objectid",
     "pl_name",
     "pl_letter",
@@ -1080,16 +1085,26 @@ ALL_PS_COLUMNS = [
     "sy_kmagerr2",
 ]
 
-ALL_COMPUTED_COLUMNS = [
+ALL_CALCULATED_COLUMNS = [
     "ppld_mass_kg",
     "ppld_mass_kg_err1",
     "ppld_mass_kg_err2",
-    "ppld_mass_weight",
+    "ppld_mass_kg_weight",
     "ppld_radius_m",
     "ppld_radius_m_err1",
     "ppld_radius_m_err2",
-    "ppld_radius_weight",
-    "ppld_density_weight",
+    "ppld_radius_m_weight",
+    "ppld_density_gcm3_weight",
+    "ppld_surf_grav_ms2",
+    "ppld_surf_grav_earth",
+    "ppld_surf_grav_ms2_err1",
+    "ppld_surf_grav_ms2_err2",
+    "ppld_surf_grav_earth_err1",
+    "ppld_surf_grav_earth_err2",
+    "dm_class",
+    "dm_pred_g_ms2",
+    "dm_pred_g_earth",
+    "dm_grav_residual",
 ]
 
 USUAL_PSCOMPPARS_COLUMNS = [

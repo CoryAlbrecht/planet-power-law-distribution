@@ -1,14 +1,11 @@
 """Compute weights, surface gravity, and assign Durand-Manterola classes."""
 
-import os
 from typing import cast
 
 import numpy as np
 import pandas as pd
 
 from planet_power.constants import (
-    DATA_DIR,
-    COMPUTED_DATA_FILE_TEMPLATE,
     DM_AB_KG,
     DM_BC_KG,
     DM_GRAVITY,
@@ -17,7 +14,6 @@ from planet_power.constants import (
     R_JUP_M,
     G,
 )
-from planet_power.helpers import save_df_to_csv
 
 
 def calculate_astrophysical_weight(
@@ -59,7 +55,7 @@ def calculate_astrophysical_weight(
     vals = [np.abs(v) for v in [err_plus, err_minus] if v is not None]
     sigma = sum(vals) / len(vals)
 
-    if value <= 0 or pd.isna(sigma):
+    if value < 0 or pd.isna(sigma):
         return 0.0
 
     rel_error = sigma / value
@@ -102,7 +98,7 @@ def _row_density_weight(row: pd.Series) -> float:
     return calculate_astrophysical_weight(value=density, err_plus=err1, err_minus=err2)
 
 
-def compute_extras(df: pd.DataFrame, data_table: str = "ps") -> pd.DataFrame:
+def calculate_extras(df: pd.DataFrame, data_table: str = "ps") -> pd.DataFrame:
     """
     Compute derived columns from raw NASA mass, radius, and density columns
     and return them as a new DataFrame alongside the planet identity columns.
@@ -123,9 +119,6 @@ def compute_extras(df: pd.DataFrame, data_table: str = "ps") -> pd.DataFrame:
     """
 
     print("Computing extra data …")
-    extras_file = os.path.join(
-        DATA_DIR, COMPUTED_DATA_FILE_TEMPLATE.replace("%t", data_table)
-    )
 
     mass_weights: pd.Series[float] = df.apply(_row_mass_weight, axis=1)
     radius_weights: pd.Series[float] = df.apply(_row_radius_weight, axis=1)
@@ -139,12 +132,12 @@ def compute_extras(df: pd.DataFrame, data_table: str = "ps") -> pd.DataFrame:
             "ppld_mass_kg": df["pl_bmassj"] * M_JUP_KG,
             "ppld_mass_kg_err1": df["pl_bmassjerr1"] * M_JUP_KG,
             "ppld_mass_kg_err2": df["pl_bmassjerr2"] * M_JUP_KG,
-            "ppld_mass_weight": mass_weights,
+            "ppld_mass_kg_weight": mass_weights,
             "ppld_radius_m": df["pl_radj"] * R_JUP_M,
             "ppld_radius_m_err1": df["pl_radjerr1"] * R_JUP_M,
             "ppld_radius_m_err2": df["pl_radjerr2"] * R_JUP_M,
-            "ppld_radius_weight": radius_weights,
-            "ppld_density_weight": density_weights,
+            "ppld_radius_m_weight": radius_weights,
+            "ppld_density_gcm3_weight": density_weights,
         }
     )
 
@@ -153,8 +146,6 @@ def compute_extras(df: pd.DataFrame, data_table: str = "ps") -> pd.DataFrame:
 
     # Assign Durand-Manterola classes
     df_extras = assign_dm_class(df_extras)
-
-    save_df_to_csv(df_extras, extras_file)
 
     return df_extras
 
@@ -168,11 +159,6 @@ def compute_surface_gravity(df: pd.DataFrame) -> pd.DataFrame:
 
     df["ppld_surf_grav_ms2"] = g.round(4)
     df["ppld_surf_grav_earth"] = (g / G_EARTH).round(4)
-
-    M_err1 = df["ppld_mass_kg_err1"]
-    M_err2 = df["ppld_mass_kg_err2"]
-    R_err1 = df["ppld_radius_m_err1"]
-    R_err2 = df["ppld_radius_m_err2"]
 
     # --- UPPER BOUND (Maximum Gravity) ---
     # To maximize g, we need the largest Mass and the smallest Radius.

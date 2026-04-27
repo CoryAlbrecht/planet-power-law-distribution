@@ -13,7 +13,7 @@ from planet_power.constants import (
     DATA_DIR,
     MAX_AGE,
     RAW_DATA_FILE_TEMPLATE,
-    TAP_BASE,
+    EXOPLANET_ARCHIVE_TAP_BASE,
     USUAL_PS_COLUMNS,
     USUAL_PS_WHERE,
     USUAL_PSCOMPPARS_COLUMNS,
@@ -30,7 +30,7 @@ def _is_cache_valid(path: str) -> bool:
 
 
 def retrieve_exoplanet_data(
-    columns: list[str] | None = None,
+    columns: list[str] = [],
     force_refresh: bool = False,
     pscomppars: bool = False,
 ) -> pd.DataFrame:
@@ -57,20 +57,24 @@ def retrieve_exoplanet_data(
             print(f"  → {len(df):,} planets loaded from cache.")
             return df
         else:
-            print(f"Could not load cached CSV file, so trying to redownload.")
-    cols = None
-    if columns is None:
+            print(
+                f"Could not load cached CSV file '{os.path.relpath(raw_data_file)}', so trying to download it again."
+            )
+    # column selection
+    cols: str = "*"
+    if not columns:
         if pscomppars:
             cols = ",".join(USUAL_PSCOMPPARS_COLUMNS)
         else:
             cols = ",".join(USUAL_PS_COLUMNS)
     else:
         cols = ",".join(columns)
+    # select where ckause
     where = ""
     if pscomppars:
         where = f" WHERE {USUAL_PSCOMPPARS_WHERE}"
-    else:
-        where = f" WHERE {USUAL_PS_WHERE}"
+    # else:
+    #    where = f" WHERE {USUAL_PS_WHERE}"
     query = f"SELECT {cols} FROM {data_table} {where}"
     params = {"query": query, "format": "csv"}
 
@@ -78,15 +82,19 @@ def retrieve_exoplanet_data(
         f"Querying NASA Exoplanet Archive table '{data_table}' …",
         flush=True,
     )
-    resp = requests.get(TAP_BASE, params=params, timeout=120)
+    resp = requests.get(EXOPLANET_ARCHIVE_TAP_BASE, params=params, timeout=120)
     resp.raise_for_status()
 
     print("Parsing retrieved data …")
     df = pd.read_csv(StringIO(resp.text), comment="#", encoding="utf-8")
     print(f"  → {len(df):,} planets retrieved.")
 
-    print("Saving data to CSV file")
     if save_df_to_csv(df, raw_data_file):
-        print(f"  → Saved raw data to {os.path.basename(raw_data_file)}")
+        print(f"Saved raw data to {os.path.relname(raw_data_file)}")
+    else:
+        print()
+        print(
+            f"There was a problem saving raw data to {os.path.relname(raw_data_file)}"
+        )
 
     return df

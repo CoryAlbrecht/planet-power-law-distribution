@@ -32,5 +32,9 @@
   "isort.check": true,
   "[json]": {
     "editor.defaultFormatter": "vscode.json-language-features"
-  }
+  },
+  "cSpell.words": [
+    "global_group"
+  ],
+  "sourcery.ruleType.comments": false
 }
