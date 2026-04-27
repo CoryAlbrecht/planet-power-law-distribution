@@ -3,15 +3,24 @@
 from __future__ import annotations
 
 import argparse
+import csv
+import io
+import multiprocessing
 import os
 import re
+import sys
+from functools import reduce
 from importlib.metadata import version
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
+import jax
+import numpy as np
 import pandas as pd
+from rich.console import Console
+from rich.theme import Theme
 
-from planet_power.analyze import run_bayesian_slice_weighted
+from planet_power.analyze import run_bayesian_slice_weighted, run_numpyro_slice_weighted
 from planet_power.compute import calculate_extras
 from planet_power.constants import (
     CALCULATED_DATA_FILE_TEMPLATE,
@@ -21,6 +30,7 @@ from planet_power.constants import (
 )
 from planet_power.helpers import (
     apply_filter_rules,
+    combine_csv_files,
     combine_df,
     extract_columns,
     get_column_list,
@@ -30,6 +40,42 @@ from planet_power.helpers import (
 )
 from planet_power.retrieve import retrieve_exoplanet_data
 from planet_power.visualization import save_scatter_png
+
+# -- Pretty Printing
+custom_theme = Theme(
+    {
+        "repr.str": "bold green",  # Change strings to bold green
+        "repr.number": "italic blue",  # Change numbers to italic cyan
+        "repr.boolean": "underline orange1",
+        "repr.none": "bright_magenta",
+    }
+)
+console = Console(theme=custom_theme, stderr=True)
+
+
+# ── Analysis constants ─────────────────────────────────────────────────────────
+# Outer loop: 10^N to 10^(N+M), with M hard-coded to 1 for now.
+_ANALYZE_N_MIN: int = 21
+_ANALYZE_N_MAX: int = 28
+_ANALYZE_M: int = 1  # window width in decades (future: user-supplied)
+
+# Inner loop multipliers: 1.0, 1.5, 2.0, …, 9.5
+_ANALYZE_MULTIPLIERS: List[float] = [x / 10 for x in range(10, 100)]  # 1.0,... 9.9
+
+# Parallelism cap (future: user-supplied)
+_MAX_WORKERS: int = 8
+
+# CSV columns written to output
+_OUTPUT_FIELDS: List[str] = [
+    "slice_lower_limit",
+    "slice_upper_limit",
+    "n",
+    "a",
+    "b",
+    "b_std",
+    "b_std/abs(b)",
+    "abs(b)/b_std",
+]
 
 
 def _validate_tag(tag: str) -> str:
@@ -59,6 +105,191 @@ def _validate_file(file_name: str) -> Path:
     return file_path
 
 
+# ── Worker initialiser (runs once per spawned process) ─────────────────────────
+
+_worker_df: pd.DataFrame | None = None
+
+
+def _worker_init(df_bytes: bytes) -> None:
+    """Deserialise the shared DataFrame once per worker process.
+
+    Using a module-level global avoids pickling the (potentially large)
+    DataFrame on every Pool.apply_async() call.
+    """
+    jax.config.update("jax_enable_x64", True)
+    global _worker_df
+    _worker_df = pd.read_parquet(io.BytesIO(df_bytes))
+
+
+# ── Worker task ────────────────────────────────────────────────────────────────
+
+
+def _worker_task(lower: float, upper: float) -> Dict[str, float]:
+    """Run one slice on the pre-loaded worker DataFrame."""
+    assert _worker_df is not None, "Worker DataFrame was not initialised"
+    return run_numpyro_slice_weighted(_worker_df, lower, upper)
+
+
+# ── cli_analyze ────────────────────────────────────────────────────────────────
+
+
+def cli_analyze(
+    in_files: list[Path],
+    out_files: list[Path],
+    dex_width: float = 1.0,
+    x_col_fam: str | None = None,  # reserved for future generalisation
+    y_col_fam: str | None = None,  # reserved for future generalisation
+) -> None:
+    """
+    Run a sliding-window Bayesian power-law regression across mass slices.
+
+    Outer loop  : n ∈ {23, 24, …, 29}  →  window [mult × 10^n, mult × 10^(n+M)]
+    Inner loop  : mult ∈ {1.0, 1.5, 2.0, …, 9.5}
+    Total slices: 7 × 18 = 126
+
+    Each slice calls run_numpyro_slice_weighted() in a spawned worker process
+    (up to _MAX_WORKERS in parallel) so JAX/XLA is isolated from the main
+    process and the GIL is never a bottleneck.
+
+    Output CSV columns:
+        slice_lower_limit, slice_upper_limit, a, b, b_std,
+        b_std/abs(b), abs(b)/b_std
+
+    limit/a columns use scientific notation; b/b_std columns use plain decimal.
+    Progress lines go to stderr so stdout remains clean and pipeable.
+    """
+    # ── Validate input ─────────────────────────────────────────────────────
+    if not in_files:
+        console.print("Error: -a/--analyze requires -I <input_csv>.")
+        return
+
+    input_path = in_files[0]
+    if not input_path.exists():
+        console.print(f"Error: input file '{input_path}' not found.")
+        return
+
+    required_cols = [
+        "ppld_mass_kg",
+        "ppld_mass_kg_err1",
+        "ppld_mass_kg_err2",
+        "ppld_mass_kg_weight",
+        "ppld_radius_m",
+        "ppld_radius_m_err1",
+        "ppld_radius_m_err2",
+        "ppld_radius_m_weight",
+    ]
+    df = load_csv_to_df(str(input_path), required_cols=required_cols)
+    if df is None:
+        console.print(
+            f"Error: could not load '{input_path}' or required columns missing.",
+        )
+        return
+
+    console.print(f"Loaded {len(df):,} rows from '{os.path.relpath(input_path)}'.")
+
+    # ── Build the full slice list ──────────────────────────────────────────
+    slices: List[Tuple[float, float]] = []
+    for n in range(_ANALYZE_N_MIN, _ANALYZE_N_MAX + 1):
+        for mult in _ANALYZE_MULTIPLIERS:
+            # lower = mult * 10**n
+            lower = 1e-30
+            upper = mult * 10 ** (n + dex_width)
+            slices.append((lower, upper))
+
+    total = len(slices)
+    console.print(
+        f"Running {total} slices (n={_ANALYZE_N_MIN}..{_ANALYZE_N_MAX}, "
+        f"mult=1.0..9.5, M={dex_width}) "
+        f"with up to {_MAX_WORKERS} workers …",
+    )
+
+    # ── Serialise DataFrame once for the worker pool ───────────────────────
+
+    buf = io.BytesIO()
+    df.to_parquet(buf, index=False)
+    df_bytes = buf.getvalue()
+
+    # ── Determine output destination ───────────────────────────────────────
+    # out_files[0] → CSV file; absent → stdout
+    out_path: Path | None = out_files[0] if out_files else None
+    out_fh = (
+        open(out_path, "w", newline="", encoding="utf-8") if out_path else sys.stdout
+    )
+
+    # ── Run pool and stream results ────────────────────────────────────────
+    writer = csv.DictWriter(out_fh, fieldnames=_OUTPUT_FIELDS)
+    writer.writeheader()
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+    os.environ["JAX_LOG_COMPILES"] = "0"  # suppresses some XLA noise
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # suppresses the autotuner errors
+    os.environ["JAX_PLATFORMS"] = "cpu"  # prevent 4 workers fighting over GPU RAM
+
+    try:
+        ctx = multiprocessing.get_context("spawn")
+        completed = 0
+
+        with ctx.Pool(
+            processes=_MAX_WORKERS,
+            initializer=_worker_init,
+            initargs=(df_bytes,),
+        ) as pool:
+            # Submit all tasks up front; results arrive as workers finish.
+            futures = [
+                (lower, upper, pool.apply_async(_worker_task, args=(lower, upper)))
+                for lower, upper in slices
+            ]
+
+            for lower, upper, future in futures:
+                result = future.get()  # blocks until this specific slice is done
+                completed += 1
+
+                n = result.get("n", np.nan)
+                b = result.get("b", np.nan)
+                b_std = result.get("b_std", np.nan)
+
+                # Derived ratios — guard against division by zero / nan
+                if np.isnan(b) or b == 0 or np.isnan(b_std) or b_std == 0:
+                    rel_err = np.nan
+                    snr = np.nan
+                else:
+                    rel_err = b_std / abs(b)
+                    snr = abs(b) / b_std
+
+                row = {
+                    "slice_lower_limit": f"{lower:.3e}",
+                    "slice_upper_limit": f"{upper:.3e}",
+                    "n": result.get("n", 0),
+                    "a": f"{result.get('a', np.nan):.12f}",
+                    "b": f"{b:.12f}" if not np.isnan(b) else "nan",
+                    "b_std": f"{b_std:.12f}" if not np.isnan(b_std) else "nan",
+                    "b_std/abs(b)": (
+                        f"{rel_err:.12f}" if not np.isnan(rel_err) else "nan"
+                    ),
+                    "abs(b)/b_std": f"{snr:.12f}" if not np.isnan(snr) else "nan",
+                }
+                writer.writerow(row)
+
+                # Flush so the file / stdout updates are visible in real time
+                out_fh.flush()
+
+                console.print(
+                    f"[{completed:>3}/{total}] data points: {n}; "
+                    f"{lower:.3e} – {upper:.3e} "
+                    f"b={b:.9f}, b_std={b_std:.12f}, bre={rel_err:.12f}  snr={snr:.12f}",
+                )
+
+    finally:
+        if out_path is not None:
+            out_fh.close()
+            console.print(f"\nResults written to '{out_path}'.")
+        else:
+            console.print("\nDone.")
+
+
+# ── Existing CLI functions (unchanged) ────────────────────────────────────────
+
+
 def cli_calculate(
     df_raw: pd.DataFrame | None,
     raw_data_file: str,
@@ -73,85 +304,96 @@ def cli_calculate(
     if df_raw_loaded is not None:
         df_extras = calculate_extras(df_raw_loaded, data_table=data_table)
         if save_df_to_csv(df_extras, calculated_data_file):
-            print(
+            console.print(
                 f"Calculated extra data saved to '{os.path.relpath(calculated_data_file)}'."
             )
             return df_extras
         else:
-            print(
+            console.print(
                 f"Error! Could not save calculated extra data to '{os.path.relpath(calculated_data_file)}'."
             )
             return None
     else:
-        print(f"Unable to load file '{os.path.relpath(raw_data_file)}'.")
+        console.print(f"Unable to load file '{os.path.relpath(raw_data_file)}'.")
         return None
 
 
 def cli_extract(
-    df_raw: pd.DataFrame | None,
-    raw_data_file: str,
-    df_extras: pd.DataFrame | None,
-    calculated_data_file: str,
+    in_paths: list[Path],
+    out_files: list[Path],
     columns_list: list[str] = [],
     filter_rules: list[tuple[str, str]] = [],
     tag: str = "",
 ) -> pd.DataFrame | None:  # sourcery skip: default-mutable-arg
+
+    if not len(in_paths):
+        console.print("No input CSV data file speicifed.")
+        return
+
+    for in_path in in_paths:
+        if not in_path.exists():
+            console.print(f"File '{os.path.relpath(str(in_path))}' does not exist")
+            return
+
+    in_files = [str(p) for p in in_paths]
+
     if not columns_list:
-        print("No columns to extract were given.")
+        console.print("No columns to extract were given.")
         return None
 
-    if df_raw is not None:
-        df_one = df_raw
-    else:
-        df_one = load_csv_to_df(raw_data_file, required_cols=["pl_name"])
+    # df_list: list[pd.DataFrame] = []
 
-    if df_extras is not None:
-        df_two = df_extras
-    else:
-        df_two = load_csv_to_df(calculated_data_file, required_cols=["pl_name"])
+    # for in_file in in_files:
+    #     df_out = load_csv_to_df(in_file)
+    #     if df_out is not None:
+    #         df_list.append(df_out.set_index("pl_name"))
 
-    # df_combined = combine_csv_files("pl_name", [], raw_data_file, calculated_data_file)
-    df_combined = combine_df(df_one, df_two)
+    # df_together: pd.DataFrame = reduce(
+    #     lambda left, right: left.combine_first(right), df_list
+    # )
 
-    if df_combined is None:
-        print("Unable to combine data files.")
-        return
-    print(f"Combined dataset has {len(df_combined)} records.")
+    # df_combined = df_together.reset_index() if df_together.index.name else df_together
+
+    df_combined = combine_csv_files("pl_name", [], *in_files)
+
+    console.print(f"Combined dataset has {len(df_combined)} records.")
     df_filtered = apply_filter_rules(df_combined, filter_rules)
-    print(f"Filtered dataset has {len(df_filtered)} records.")
+    console.print(f"Filtered dataset has {len(df_filtered)} records.")
     df_extracted = extract_columns(columns_list, df_filtered)
-    print(f"Extracted dataset has {len(df_extracted)} records.")
+    console.print(f"Extracted dataset has {len(df_extracted)} records.")
+
+    #
     extract_file = os.path.join(
         DATA_DIR, EXTRACTED_DATA_FILE_TEMPLATE.replace("%T", f"{tag and '.' + tag}")
     )
     if save_df_to_csv(df_extracted, extract_file):
-        print(f"Extracted data saved to {os.path.relpath(extract_file)}")
+        console.print(f"Extracted data saved to {os.path.relpath(extract_file)}")
     return df_extracted
 
 
 def cli_image(
     in_files: list[Path],
     out_files: list[Path],
-    reg_min: float,
-    reg_max: float,
+    reg_min: float | None,
+    reg_max: float | None,
     df_extracted: pd.DataFrame | None,
     x_col_fam: str | None,
     y_col_fam: str | None,
 ):
     if not x_col_fam:
-        print("You must set an X-axis column family with --x-column-family/-x")
+        console.print("You must set an X-axis column family with --x-column-family/-x")
         return
 
     if not y_col_fam:
-        print("You must set an Y-axis column family with --y-column-family/-y")
+        console.print("You must set an Y-axis column family with --y-column-family/-y")
         return
 
     if not len(in_files):
-        print("No input CSV data file speicifed.")
+        console.print("No input CSV data file speicifed.")
         return
 
     if not in_files[0].exists():
-        print(f"Input CSV file '{str(in_files[0])}' not found.")
+        console.print(f"Input CSV file '{str(in_files[0])}' not found.")
         return
 
     input_csv = str(in_files[0])
@@ -170,16 +412,34 @@ def cli_image(
         df_pull = load_csv_to_df(input_csv, required_cols=all_cols)
 
     if df_pull is None:
-        print(f"Unable to read from file '{input_csv}'.")
+        console.print(f"Unable to read from file '{input_csv}'.")
         return
 
-    print(f"Starting bayesian regression for masses {reg_min} to {reg_max}...", end="")
-    trend: Optional[Dict[str, float]] = run_bayesian_slice_weighted(
-        df_pull,
-        reg_min,
-        reg_max,
+    console.print(
+        f"Starting bayesian regression for masses {reg_min} to {reg_max}...", end=""
     )
-    print("... done.")
+    trend = None
+
+    if reg_max is not None and reg_min is not None:
+        trend: Optional[Dict[str, float]] = run_bayesian_slice_weighted(
+            df_pull,
+            reg_min,
+            reg_max,
+        )
+    elif reg_max is not None:
+        trend: Optional[Dict[str, float]] = run_bayesian_slice_weighted(
+            df_pull,
+            1e-30,
+            reg_max,
+        )
+    elif reg_min is not None:
+        trend: Optional[Dict[str, float]] = run_bayesian_slice_weighted(
+            df_pull,
+            reg_min,
+            1e30,
+        )
+
+    console.print("... done.")
 
     save_scatter_png(
         df=df_pull,
@@ -197,21 +457,15 @@ def cli_image(
     return
 
 
-def cli_analyze(
-    in_files: list[Path],
-    out_files: list[Path],
-    x_col_fam: str | None,
-    y_col_fam: str | None,
-):
-    pass
+# ── main ───────────────────────────────────────────────────────────────────────
 
 
 def main() -> None:
     """Main entry point for the CLI."""
-    print(
+    console.print(
         f"planet-power v{version('planet-power-law-distribution')} - Investigating classification of exoplanets"
     )
-    print()
+    console.print()
     parser = argparse.ArgumentParser(
         description="Fetch exoplanet data from NASA Exoplanet Archive and compute surface gravity."
     )
@@ -219,7 +473,7 @@ def main() -> None:
         "-a",
         "--analyze",
         action="store_true",
-        help="Just do the analisys and print the output, no image output",
+        help="Run sliding-window Bayesian power-law regression across mass slices",
     )
     parser.add_argument(
         "-c",
@@ -237,10 +491,17 @@ def main() -> None:
         help="Exact name of a column ore a regular expression to match multiple. Can be used multiple times.",
     )
     parser.add_argument(
+        "-d",
+        "--dex-width",
+        type=float,
+        default=None,
+        help="Mass slice width for --analyze",
+    )
+    parser.add_argument(
         "-e",
         "--extract",
         action="store_true",
-        help="Combine data files and extract specific columns to a new data file",
+        help="Join data files and extract specific columns to a new data file",
     )
     parser.add_argument(
         "-f",
@@ -264,8 +525,9 @@ def main() -> None:
     )
     parser.add_argument(
         "-I",
-        "--input-csv",
-        nargs="+",
+        "--input-file",
+        action="append",
+        default=[],
         type=_validate_file,
         metavar="CSV_IN",
         help="CSV file to read input data from",
@@ -274,23 +536,24 @@ def main() -> None:
         "-m",
         "--regression-minimum",
         type=float,
-        default=0,
+        default=None,
         help="Minimum mass data value for scatter plot regression testing",
     )
     parser.add_argument(
         "-M",
         "--regression-maximum",
         type=float,
-        default=1e31,
+        default=None,
         help="Maximum mass data value for scatter plot regression testing",
     )
     parser.add_argument(
         "-O",
-        "--output-csv",
-        nargs="+",
+        "--output-file",
+        action="append",
+        default=[],
         type=_validate_file,
-        metavar="CSV_IN",
-        help="CSV file to write output data to",
+        metavar="CSV_OUT",
+        help="CSV file to write output data to (omit to print to stdout)",
     )
     parser.add_argument(
         "-p",
@@ -342,9 +605,9 @@ def main() -> None:
     df_extracted = None
 
     if args.help_columns:
-        print()
+        console.print()
         list_available_columns()
-        print()
+        console.print()
         return
 
     # table to use
@@ -367,18 +630,12 @@ def main() -> None:
     flat_args = [item for sublist in args.filter for item in sublist]
     for arg in flat_args:
         if ":" not in arg:
-            print(f'String "{arg}" is not a valid filter string.')
+            console.print(f'String "{arg}" is not a valid filter string.')
             continue
         col, pattern = arg.split(":", 1)
         filter_rules.append((col, pattern))
 
-    if (
-        not args.analyze
-        and not args.retrieve
-        and not args.extract
-        and not args.calculate
-        and not args.image
-    ):
+    if not any([args.analyze, args.retrieve, args.extract, args.calculate, args.image]):
         parser.print_help()
         return
 
@@ -395,31 +652,32 @@ def main() -> None:
         )
 
     if args.extract:
-        df_extracted = cli_extract(
-            df_raw,
-            raw_data_file,
-            df_extras,
-            calculated_data_file,
+        cli_extract(
+            args.input_file or [],
+            args.output_file or [],
             columns_list,
             filter_rules,
             args.tag,
         )
+
     if args.image:
         cli_image(
-            args.input_csv,
-            args.output_csv,
+            args.input_file or [],
+            args.output_file or [],
             args.regression_minimum,
             args.regression_maximum,
             df_extracted,
             args.x_col_set,
             args.y_col_set,
         )
+
     if args.analyze:
         cli_analyze(
-            args.input_csv,
-            args.output_csv,
-            args.x_col_set,
-            args.y_col_set,
+            in_files=args.input_file or [],
+            out_files=args.output_file or [],
+            dex_width=args.dex_width,
+            x_col_fam=args.x_col_set,
+            y_col_fam=args.y_col_set,
         )
 
 

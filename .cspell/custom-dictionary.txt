@@ -1,6 +1,0 @@
-# Custom Dictionary Words
-denserr
-extrahelp
-myargs
-ppld
-pscomppars

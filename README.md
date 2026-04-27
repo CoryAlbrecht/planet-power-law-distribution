@@ -22,7 +22,7 @@ A Python script that queries the [NASA Exoplanet Archive](https://exoplanetarchi
 
 ## Quickstart
 
-**Requirements:** Python 3.8+, git
+**Requirements:** Python 3.10+, git
 
 ### Automated install (Linux/macOS)
 
@@ -41,6 +41,13 @@ irm https://raw.githubusercontent.com/CoryAlbrecht/planet-power-law-distribution
 [![numpy](https://img.shields.io/pypi/v/numpy?label=numpy)](https://numpy.org/)
 [![pandas](https://img.shields.io/pypi/v/pandas?label=pandas)](https://pandas.pydata.org/)
 [![matplotlib](https://img.shields.io/pypi/v/matplotlib?label=matplotlib)](https://matplotlib.org/)
+[![jax](https://img.shields.io/pypi/v/jax?label=jax)](https://jax.readthedocs.io/)
+[![numpyro](https://img.shields.io/pypi/v/numpyro?label=numpyro)](https://num.pyro.ai/)
+[![linmix](https://img.shields.io/pypi/v/linmix?label=linmix)](https://github.com/jmeyers314/linmix)
+[![requests](https://img.shields.io/pypi/v/requests?label=requests)](https://requests.readthedocs.io/)
+[![rich](https://img.shields.io/pypi/v/rich?label=rich)](https://rich.readthedocs.io/)
+[![openpyxl](https://img.shields.io/pypi/v/openpyxl?label=openpyxl)](https://openpyxl.readthedocs.io/)
+[![pyarrow](https://img.shields.io/pypi/v/pyarrow?label=pyarrow)](https://arrow.apache.org/docs/python/)
 
 ### Manual install
 
@@ -74,20 +81,17 @@ $ planet-power -r --pscomppars
 $ planet-power --calculate
 $ planet-power -c -p
 
-# Create split files for plotting with no filtering, may be with downloaded PSCompPars data
-$ planet-power --split
-$ planet-power -s -p
+# Join CSV files on the index column and then extract specific columns
+$ planet-power --extract -I ./data/pscomppars-raw-data.csv -I ./data/pscomppars-calculated.csv  -f "pl_bmassprov:M-R relationship" -C pl_name -C "~pl_bmassj.*" -C pl_bmassprov -C "~pl_radj.*" -C "~pl_dens.*" -C "~ppld_.*"
 
-# Create split files for plotting with filtering out calculated values from one column
-$ planet-power -s --filter "pl_bmassprov:M-R relationship"
-$ planet-power -s -f "pl_bmassprov:M-R relationship"
+# Create a scatter plot graph of the data in a CSV file
+planet-power --image --input-file ./data/extracted.filtered-more.csv --x-col-set "ppld_mass_kg" --y-col-set "ppld_radius_m" --output-file ./data/mass-vs-radius-filtered-more.png
 
-# Create split files for plotting with filtering out calculated values from two columns, using PSCompPars data
-$ planet-power -s -p -f "pl_bmassprov:M-R relationship" -f pl_dens_reflink:CALCULATED_VALUE
+# Create a scatter plot graph of the data in a CSV file with a trend line from Bayesian regression
+$ planet-power -i -I ./data/extracted.filtered-more.csv -x "ppld_mass_kg" -y "ppld_radius_m" --regression-minimum 1e-30 --regression-maximum 5e+25 -O ./data/mass-vs-radius-filtered-more.png
 
-# Steps can be combind into one invocation
-$ planet-power -r -R -p -C -t tag1
-$ planet-power -C -p --tag tag1 -s -f "pl_bmassprov:M-R relationship" -c "~pl_bmassj.*" -c pl_bmassprov -c "~pl_radj.*" -c "~pl_dens.*" -c "~ppld_.*"
+# Do a slice by slice Bayesian regression analysis of a data set
+$ planet-power -a -d 2 -x ppld_mass_kg -y ppld_radius_m -I ./data/extracted.filtered-more.csv
 ```
 
 No API key is required. The script queries NASA's public TAP service directly.
@@ -98,17 +102,18 @@ No API key is required. The script queries NASA's public TAP service directly.
 
 | Option                                                      | Description                                                                                                                                                                                                                                                     | Output        |
 |-------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
-| `-a`, `--analyze`                                           | Just do the analisys and print the output, no image                                                                                                                                                                                                             | CSV, terminal |
-| `-c COLUMN\|~REGEX\|@FILE`,`--column COLUMN\|~REGEX\|@FILE` | Choose columns for fetching or splitting <ul><li>If the value starts with a ~ it is a reguar expression</li><li>If the value starts with a @ it is a text file with one value per line, no nesting</li><li>Otherwise it is the exact name of a column</li></ul> |               |
-| `-C`, `--calculate`                                         | Create extra CSV file with calculated values not in the NASA Exoplanet Archive data                                                                                                                                                                             | CSV           |
+| `-a`, `--analyze`                                           | Do the Bayesian analyses and print the output, no image                                                                                                                                                                                                         | CSV, terminal |
+| `-C COLUMN\|~REGEX\|@FILE`,`--column COLUMN\|~REGEX\|@FILE` | Choose columns for fetching or splitting <ul><li>If the value starts with a ~ it is a reguar expression</li><li>If the value starts with a @ it is a text file with one value per line, no nesting</li><li>Otherwise it is the exact name of a column</li></ul> |               |
+| `-c`, `--calculate`                                         | Create extra CSV file with calculated values not in the NASA Exoplanet Archive data                                                                                                                                                                             | CSV           |
+| `-d`, `--dex-width`                                         | 'DEcimal eXponent', the size of a mass slice for Bayesian regression with `--analyze`                                                                                                                                                                           |               |
 | `-e`, `--extract`                                           | Combine CSV data files and extract specific columns                                                                                                                                                                                                             | CSV           |
 | `-f COLUMN:REGEX`, `--filter COLUMN:REGEX`                  | Filter out rows where COLUMN matches REGEX (can be used multiple times)                                                                                                                                                                                         |               |
 | `--help-columns`                                            | List all available columns in the CSV data files                                                                                                                                                                                                                |               |
 | `-i`, `--image`                                             | Make a scatter plot graph from a CSV data file                                                                                                                                                                                                                  | PNG           |
-| `-I` , `--input-csv`                                        | CSV file to read input data from                                                                                                                                                                                                                                |               |
+| `-I` , `--input-file`                                       | CSV file to read input data from                                                                                                                                                                                                                                |               |
 | `-m`, `--regression-minimum`                                | Minimum mass data value for scatter plot regression testing                                                                                                                                                                                                     |               |
 | `-M`, `--regression-maximum`                                | Maximum mass data value for scatter plot regression testing                                                                                                                                                                                                     |               |
-| `-O`, `--output-csv`                                        | CSV file to write output data to                                                                                                                                                                                                                                |               |
+| `-O`, `--output-file`                                       | CSV file to write output data to                                                                                                                                                                                                                                |               |
 | `-r`, `--retrieve`                                          | Fetch data from NASA Exoplanet Archive                                                                                                                                                                                                                          | CSV           |
 | `-R`, `--refresh`                                           | Force refresh of raw data from NASA Exoplanet Archive, requires `-r` / `--retrieve`                                                                                                                                                                             |               |
 | `-p`, `--pscomppars`                                        | Use the "PsCompPars" data table from the NASA Exoplanet Archive                                                                                                                                                                                                 |               |
@@ -126,7 +131,11 @@ All output data ends up in the `./data` directory.
 
 ### Data source
 
-The script utilizes the NASA Exoplanet Archive TAP service to retrieve the `pscomppars` (Planetary Systems Composite Parameters) table. This table is preferred as it provides a single, representative set of parameters for each planet.
+The script utilizes the NASA Exoplanet Archive TAP service to retrieve either the `ps` (Planetary Systems) or `pscomppars` (Planetary Systems Composite Parameters) table. The `pscomppars` table is preferred for population studies as it provides a single, representative set of parameters for each confirmed planet. Data is cached locally for up to one week; use `--refresh` to force a new download.
+
+### Solar system reference objects
+
+`constants.py` embeds a curated table of 37 solar system bodies (planets, major moons, and dwarf planets) with mass, radius, density, and reliability weights sourced from spacecraft missions and published ephemerides. This data is available for overlay or comparison in future visualizations.
 
 ### Weighting
 
@@ -163,6 +172,25 @@ This ensures that points with high relative uncertainty fade naturally while tho
 $$W = \mathrm{clip}(W_{prov} \cdot W_{prec},\ 0,\ 1)$$
 
 This weighting scheme combines provenance quality with measurement precision using exponential decay of relative uncertainty. It shares the same $[0, 1]$ range as inverse-variance weighting and can be passed directly to fitting routines such as `linmix` or `scipy.odr`. The exponential form is deliberately gentler than $1/\sigma^2$ at large uncertainties, treating poorly-measured planets as low-confidence rather than discarding them.
+
+### Bayesian power-law regression
+
+The `--analyze` command runs a sliding-window Bayesian regression across mass slices to estimate the local power-law exponent $b$ in $R = a \cdot M^b$ at each point along the mass axis.
+
+**Primary sampler — NumPyro NUTS** (`run_numpyro_slice_weighted`):
+The production analysis uses JAX/NumPyro with the No-U-Turn Sampler (NUTS). The probabilistic model includes:
+
+- A $K=2$ Gaussian mixture prior on the latent true log₁₀(mass), capturing the bimodal terrestrial/Jovian population structure without forcing a unimodal prior.
+- Per-point heteroscedastic measurement noise on both axes (weight-scaled asymmetric errors propagated into log₁₀ space).
+- A HalfNormal prior on intrinsic scatter in log₁₀(radius) beyond measurement noise.
+- 500 warm-up steps and 1 000 posterior samples per slice via a single chain.
+
+Each slice is run in a separate spawned worker process (up to 8 in parallel) so the JAX/XLA runtime is isolated from the main process and slices never contend for GPU memory. Results are streamed to CSV in real time as workers complete.
+
+**Secondary sampler — linmix Gibbs** (`run_bayesian_slice_weighted`):
+A linmix-based Gibbs sampler (Kelly 2007) is retained for single-slice regression with an optional mass range, used when generating a trend line for the `--image` scatter plot. It mirrors the same data-preparation pipeline (weight-scaled errors, log₁₀ propagation, $K=2$ GMM on $x$) but uses a Gibbs sampler rather than NUTS.
+
+Both functions symmetrize asymmetric error bars (averaging $|\sigma^+|$ and $|\sigma^-|$) and scale the resulting linear error by $1/\sqrt{w}$ before propagating into log₁₀ space, so that lower-reliability measurements contribute wider error bars to the fit rather than being discarded.
 
 ### Surface gravity
 
@@ -228,14 +256,37 @@ The Exoplanet Archive data has the `pl_bmassprov` column, which means exoplanet 
 | Unfiltered, showing Chen & Kipping piecewise power law artefact                         | Filtered                                                                          | Filtered More                                                                          |
 |-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
 | 6,020 records                                                                           | 3,158 records                                                                     | 1,656                                                                                  |
-| ![Mass vs. Radius, unfiltered](data/pscomppars-mass-vs-radius.example_not_filtered.png) | ![Mass vs. Radius, filtered](data/pscomppars-mass-vs-radius.example_filtered.png) | ![Mass vs. Radius, filtered](data/pscomppars-mass-vs-radius.example_filtered_more.png) |
+| ![Mass vs. Radius, unfiltered](docs/pscomppars-mass-vs-radius.example_not_filtered.png) | ![Mass vs. Radius, filtered](docs/pscomppars-mass-vs-radius.example_filtered.png) | ![Mass vs. Radius, filtered](docs/pscomppars-mass-vs-radius.example_filtered_more.png) |
 
 ### Figure 2. Mass vs. Density
 
 | Unfiltered, showing Chen & Kipping piecewise power law artefact                           | Filtered                                                                            | Filtered More                                                                            |
 |-------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
 | 6,020 records                                                                             | 3,158 records                                                                       | 1,656                                                                                    |
-| ![Mass vs. Density, unfiltered](data/pscomppars-mass-vs-density.example_not_filtered.png) | ![Mass vs. Density, filtered](data/pscomppars-mass-vs-density.example_filtered.png) | ![Mass vs. Density, filtered](data/pscomppars-mass-vs-density.example_filtered_more.png) |
+| ![Mass vs. Density, unfiltered](docs/pscomppars-mass-vs-density.example_not_filtered.png) | ![Mass vs. Density, filtered](docs/pscomppars-mass-vs-density.example_filtered.png) | ![Mass vs. Density, filtered](docs/pscomppars-mass-vs-density.example_filtered_more.png) |
+
+### Figure 3. Graph log₁₀(mass slice) vs. b (power-law exponent)
+![Image](./docs/1-mag-slice-slide-by-half.png)
+
+The chart shows some clear patterns worth noting:
+The red cluster (sparse slices, n < 20) in the 10²³–10²⁴ range is very noisy — b swings from -0.42 to +1.42, which makes sense given only 6–17 data points going into the MCMC. Don't trust those.
+The blue points tell a more interesting story — there appear to be at least two regimes:
+
+- Around 10²⁴–10²⁶ kg, b is scattered near 0 with high b_std, suggesting the sampler is struggling to find a consistent slope — this is likely the transition zone between Durand-Manterola's Class A/B boundary (~5×10²⁵ kg)
+- From ~10²⁶ kg upward, b converges tightly around -0.257 with very small b_std — that's a strong, stable signal in the Jovian/Class C regime
+
+The fact that b is negative in the upper mass range is physically interesting — it means radius shrinks slightly with increasing mass for gas giants, which is consistent with electron degeneracy pressure effects in the Jovian regime. Durand-Manterola's Class C exponent from the paper would be the direct comparison point as wider slices are run.
+
+### Figure 4. Potential Class A-B transition?
+![Image](/docs/class-a-b-transition-1.png)
+
+The disruption is very visible. A few things worth noting:
+
+**The boundary signal is real.** b is tracking smoothly around -0.19 right up to 3×10²⁵, then it collapses toward zero and briefly goes positive at 4×10²⁵, before snapping back to ~-0.20 at 4.5×10²⁵. That's the MCMC telling you the power law genuinely breaks at that point — you're fitting across two populations with different exponents and the sampler can't settle.
+
+**The D-M ambiguity (3 vs 5 ×10²⁵) might actually be a real physical feature, not a typo.** The disruption starts at ~3×10²⁵ and doesn't resolve until ~4.5×10²⁵. So the "boundary" may not be a sharp line — it could be a transition zone ~1.5 decades wide, and Durand-Manterola may have been reporting different edges of it in different places in the paper.
+
+**The oscillating bimodal pattern in the 10²⁴–3×10²⁵ region** (alternating between b≈+0.37 and b≈-0.25) is suspicious — that's almost certainly the sampler flipping between two local modes in the posterior rather than a real physical signal. Those slices have very few points and the GMM mixture prior is probably letting the chain wander between two interpretations of the data.
 
 ---
 
@@ -247,7 +298,7 @@ The Exoplanet Archive data has the `pl_bmassprov` column, which means exoplanet 
 
 - *Weighted least squares* — weights each point by 1/σ², respecting measurement quality
 - *Orthogonal distance regression (ODR)* — accounts for uncertainties on both axes (`scipy.odr`)
-- *Bayesian regression with intrinsic scatter* — the standard modern approach; the `linmix` package (Kelly 2007) is designed for exactly this use case
+- *Bayesian regression with intrinsic scatter* — **implemented**: the `linmix` package (Kelly 2007) is used for single-slice scatter plot trend lines, and a NumPyro NUTS model (Phan et al. 2019) is used for the sliding-window analysis
 
 **Treat class boundaries as uncertain.** The hard mass cuts could be replaced with a mixture model or a hierarchical Bayesian model that allows planets near the boundaries to have probabilistic class membership.
 
@@ -280,3 +331,6 @@ For statistical methods
 
 > Kelly, Brandon C. (2007) Some Aspects of Measurement Error in Linear Regression of Astronomical Data
 > DOI: [10.1086/519947](https://iopscience.iop.org/article/10.1086/519947)
+
+> Phan, D., Pradhan, N., & Jankowiak, M. (2019). Composable Effects for Flexible and Accelerated Probabilistic Programming in NumPyro.
+> arXiv: [1912.11554](https://arxiv.org/abs/1912.11554)

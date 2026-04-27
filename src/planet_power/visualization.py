@@ -63,11 +63,11 @@ def save_scatter_png(
     y_err_minus_col: str,
     x_weight_col: Optional[str] = None,
     x_hexcolor: str = "#FF0000",
-    x_axis_min: float | None = 1e23,
-    x_axis_max: float | None = 1e29,
+    x_axis_min: float | None = 1e20,
+    x_axis_max: float | None = 1e30,
     y_weight_col: Optional[str] = None,
     y_hexcolor: str = "#00FF00",
-    y_axis_min: float | None = 1e6,
+    y_axis_min: float | None = 1e5,
     y_axis_max: float | None = 1e9,
     # New parameter for the fit results from run_bayesian_slice()
     fit_params: Optional[Dict[str, float]] = None,
@@ -145,7 +145,7 @@ def save_scatter_png(
         ax.hlines(y, x_min_err, x_max_err, colors=rgba_x_err, linewidth=1)
         ax.vlines(x, y_min_err, y_max_err, colors=rgba_y_err, linewidth=1)
 
-    ax.scatter(x, y, color=rgba_points, s=10, zorder=3)
+    ax.scatter(x, y, color=rgba_points, s=20, zorder=3)
 
     # --- DRAW THE REGRESSION LINE & BACKGROUND BAND ---
     if fit_params and not np.isnan(fit_params["b"]):
