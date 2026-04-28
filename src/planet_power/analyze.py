@@ -2,7 +2,8 @@ from __future__ import annotations
 import linmix  # type: ignore
 import numpy as np
 import pandas as pd
-from typing import Any, Dict
+from typing import Any, Dict, cast
+from numpy.typing import NDArray
 
 
 def run_bayesian_slice(
@@ -29,13 +30,13 @@ def run_bayesian_slice(
     if len(subset) < 5:
         return {"a": np.nan, "b": np.nan, "b_std": np.nan}
 
-    def to_vec(col_name: str) -> np.ndarray:
-        return pd.to_numeric(subset[col_name], errors="coerce").fillna(0).values
+    def to_vec(col_name: str) -> NDArray[np.float64]:
+        return cast(NDArray[np.float64], pd.to_numeric(subset[col_name], errors="coerce").fillna(0).values)
 
     # 2. Extract Values and Errors
-    m_val: np.ndarray = to_vec("ppld_mass_kg")
-    m_err1: np.ndarray = to_vec("ppld_mass_kg_err1")
-    m_err2: np.ndarray = to_vec("ppld_mass_kg_err2")
+    m_val: NDArray[np.float64] = to_vec("ppld_mass_kg")
+    m_err1: NDArray[np.float64] = to_vec("ppld_mass_kg_err1")
+    m_err2: NDArray[np.float64] = to_vec("ppld_mass_kg_err2")
 
     r_val: np.ndarray = to_vec("ppld_radius_m")
     r_err1: np.ndarray = to_vec("ppld_radius_m_err1")
@@ -111,19 +112,19 @@ def run_bayesian_slice_weighted(
             "m_upper_limit": m_upper_limit,
         }
 
-    def to_vec(col_name: str) -> np.ndarray:
-        return pd.to_numeric(subset[col_name], errors="coerce").fillna(0).values
+    def to_vec(col_name: str) -> NDArray[np.float64]:
+        return cast(NDArray[np.float64], pd.to_numeric(subset[col_name], errors="coerce").fillna(0).values)
 
     # 2. Extract Values and Errors
-    m_val: np.ndarray = to_vec("ppld_mass_kg")
-    m_err1: np.ndarray = to_vec("ppld_mass_kg_err1")
-    m_err2: np.ndarray = to_vec("ppld_mass_kg_err2")
-    m_weight = to_vec("ppld_mass_kg_weight")
+    m_val: NDArray[np.float64] = to_vec("ppld_mass_kg")
+    m_err1: NDArray[np.float64] = to_vec("ppld_mass_kg_err1")
+    m_err2: NDArray[np.float64] = to_vec("ppld_mass_kg_err2")
+    m_weight: NDArray[np.float64] = to_vec("ppld_mass_kg_weight")
 
-    r_val: np.ndarray = to_vec("ppld_radius_m")
-    r_err1: np.ndarray = to_vec("ppld_radius_m_err1")
-    r_err2: np.ndarray = to_vec("ppld_radius_m_err2")
-    r_weight = to_vec("ppld_radius_m_weight")
+    r_val: NDArray[np.float64] = to_vec("ppld_radius_m")
+    r_err1: NDArray[np.float64] = to_vec("ppld_radius_m_err1")
+    r_err2: NDArray[np.float64] = to_vec("ppld_radius_m_err2")
+    r_weight: NDArray[np.float64] = to_vec("ppld_radius_m_weight")
 
     # 3. Symmetrize Errors (Mean Magnitude)
     # We average the absolute values of the plus and minus errors.
@@ -217,19 +218,19 @@ def run_numpyro_slice_weighted(
             "m_upper_limit": m_upper_limit,
         }
 
-    def to_vec(col_name: str) -> np.ndarray:
-        return pd.to_numeric(subset[col_name], errors="coerce").fillna(0).values
+    def to_vec(col_name: str) -> NDArray[np.float64]:
+        return cast(NDArray[np.float64], pd.to_numeric(subset[col_name], errors="coerce").fillna(0).values)
 
     # ── 2. Extract values and weight-scaled errors ─────────────────────────
-    m_val: np.ndarray = to_vec("ppld_mass_kg")
-    m_err1: np.ndarray = to_vec("ppld_mass_kg_err1")
-    m_err2: np.ndarray = to_vec("ppld_mass_kg_err2")
-    m_weight: np.ndarray = to_vec("ppld_mass_kg_weight")
+    m_val: NDArray[np.float64] = to_vec("ppld_mass_kg")
+    m_err1: NDArray[np.float64] = to_vec("ppld_mass_kg_err1")
+    m_err2: NDArray[np.float64] = to_vec("ppld_mass_kg_err2")
+    m_weight: NDArray[np.float64] = to_vec("ppld_mass_kg_weight")
 
-    r_val: np.ndarray = to_vec("ppld_radius_m")
-    r_err1: np.ndarray = to_vec("ppld_radius_m_err1")
-    r_err2: np.ndarray = to_vec("ppld_radius_m_err2")
-    r_weight: np.ndarray = to_vec("ppld_radius_m_weight")
+    r_val: NDArray[np.float64] = to_vec("ppld_radius_m")
+    r_err1: NDArray[np.float64] = to_vec("ppld_radius_m_err1")
+    r_err2: NDArray[np.float64] = to_vec("ppld_radius_m_err2")
+    r_weight: NDArray[np.float64] = to_vec("ppld_radius_m_weight")
 
     mass_err_avg: np.ndarray = (np.abs(m_err1) + np.abs(m_err2)) / 2.0
     rad_err_avg: np.ndarray = (np.abs(r_err1) + np.abs(r_err2)) / 2.0

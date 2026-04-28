@@ -327,6 +327,14 @@ For the mass-radius relation used by the archive to fill missing radii/masses:
 > Chen, J., & Kipping, D. (2017). Probabilistic Forecasting of the Masses and Radii of Other Worlds. *ApJ*, 834, 17.
 > DOI: [10.3847/1538-4357/834/1/17](https://doi.org/10.3847/1538-4357/834/1/17)
 
+For planetary models
+
+>Zeng, L., et al. (2019)  Growth model interpretation of planet size distribution. Proceedings of the National Academy of Sciences, 116(20), 9723–9728.  — arXiv: 1906.04253
+> DOI: [10.1073/pnas.1812905116](https://doi.org/10.1073/pnas.1812905116)
+
+>Valencia, D., O'Connell, R. J., & Sasselov, D. (2006). Internal structure of massive terrestrial planets. Icarus, 181(2), 545–554. arXiv: astro-ph/0511150
+>DOI: [10.1016/j.icarus.2005.11.021](https://doi.org/10.1016/j.icarus.2005.11.021)
+
 For statistical methods
 
 > Kelly, Brandon C. (2007) Some Aspects of Measurement Error in Linear Regression of Astronomical Data

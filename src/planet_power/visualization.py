@@ -85,31 +85,31 @@ def save_scatter_png(
     # Prepare color arrays
     if x_weight_col and y_weight_col:
         # Convert weight columns to numeric and clamp to [0, 1]
-        wx: NDArray[np.float64] = np.clip(
+        wx: Optional[NDArray[np.float64]] = np.clip(
             pd.to_numeric(df[x_weight_col], errors="coerce").fillna(0).values, 0, 1
         )
-        wy: NDArray[np.float64] = np.clip(
+        wy: Optional[NDArray[np.float64]] = np.clip(
             pd.to_numeric(df[y_weight_col], errors="coerce").fillna(0).values, 0, 1
         )
 
         # Generate colors using the gradient function
         # Horizontal Errors: White to x_hexcolor
         rgba_x_err: List[Tuple[float, float, float, float]] = [
-            to_rgba(get_hex_gradient("#FFFFFF", x_hexcolor, w), alpha=w) for w in wx
+            to_rgba(get_hex_gradient("#FFFFFF", x_hexcolor, w), alpha=w) for w in wx  # type: ignore[union-attr]
         ]
 
         # Vertical Errors: White to y_hexcolor
         rgba_y_err: List[Tuple[float, float, float, float]] = [
-            to_rgba(get_hex_gradient("#FFFFFF", y_hexcolor, w), alpha=w) for w in wy
+            to_rgba(get_hex_gradient("#FFFFFF", y_hexcolor, w), alpha=w) for w in wy  # type: ignore[union-attr]
         ]
 
         # Scatter Points: Gradient between the two primary colors based on Y/X balance
         # Alpha is the arithmetic mean of the weights
         rgba_points: List[Tuple[float, float, float, float]] = []
-        for i in range(len(wx)):
-            balance: float = wy[i] / (wx[i] + wy[i]) if (wx[i] + wy[i]) > 0 else 0.5
+        for i in range(len(wx)):  # type: ignore[arg-type]
+            balance: float = wy[i] / (wx[i] + wy[i]) if (wx[i] + wy[i]) > 0 else 0.5  # type: ignore[index]
             point_hex: str = get_hex_gradient(x_hexcolor, y_hexcolor, balance)
-            rgba_points.append(to_rgba(point_hex, alpha=(wx[i] + wy[i]) / 2.0))
+            rgba_points.append(to_rgba(point_hex, alpha=(wx[i] + wy[i]) / 2.0))  # type: ignore[index]
     else:
         # Fallback if no weights are provided
         fallback_rgba: Tuple[float, float, float, float] = to_rgba(default_color, 0.4)
@@ -208,7 +208,7 @@ def save_scatter_png(
             (wx, x_hexcolor, "X Weight", 0.6),
             (wy, y_hexcolor, "Y Weight", 0.8),
         ]:
-            ax_ins = ax.inset_axes([0.05, offset, 0.2, 0.15])
+            ax_ins = ax.inset_axes((0.05, offset, 0.2, 0.15))
             counts, _ = np.histogram(weight, bins=bins)
             ax_ins.bar(
                 bins[:-1], counts, width=0.08, color=color, align="edge", alpha=0.8

@@ -35,5 +35,10 @@
 		},
 		"peacock.color": "#73be6a",
 		"sourcery.ruleType.comments": false
+	},
+	"extensions": {
+		"recommendations": [
+			"juehangqin.vscode-mcp-server"
+		]
 	}
 }

@@ -90,11 +90,11 @@ def retrieve_exoplanet_data(
     print(f"  → {len(df):,} planets retrieved.")
 
     if save_df_to_csv(df, raw_data_file):
-        print(f"Saved raw data to {os.path.relname(raw_data_file)}")
+        print(f"Saved raw data to {os.path.relpath(raw_data_file)}")
     else:
         print()
         print(
-            f"There was a problem saving raw data to {os.path.relname(raw_data_file)}"
+            f"There was a problem saving raw data to {os.path.relpath(raw_data_file)}"
         )
 
     return df

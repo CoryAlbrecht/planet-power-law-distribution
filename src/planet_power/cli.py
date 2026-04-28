@@ -25,12 +25,13 @@ from planet_power.constants import (
     CALCULATED_DATA_FILE_TEMPLATE,
     DATA_DIR,
     EXTRACTED_DATA_FILE_TEMPLATE,
+    M_EARTH_KG,
+    M_JUP_KG,
     RAW_DATA_FILE_TEMPLATE,
 )
 from planet_power.helpers import (
     apply_filter_rules,
     combine_csv_files,
-    combine_df,
     extract_columns,
     get_column_list,
     list_available_columns,
@@ -54,8 +55,8 @@ console = Console(theme=custom_theme, stderr=True)
 
 # ── Analysis constants ─────────────────────────────────────────────────────────
 # Outer loop: 10^N to 10^(N+M), with M hard-coded to 1 for now.
-_ANALYZE_N_MIN: int = 21
-_ANALYZE_N_MAX: int = 28
+_ANALYZE_N_MIN: int = 23
+_ANALYZE_N_MAX: int = 27
 _ANALYZE_M: int = 1  # window width in decades (future: user-supplied)
 
 # Inner loop multipliers: 1.0, 1.5, 2.0, …, 9.5
@@ -73,7 +74,11 @@ _TASKS_PER_WORKER: int = 20
 # CSV columns written to output
 _OUTPUT_FIELDS: List[str] = [
     "slice_lower_limit",
+    "m_earth_lower_limit",
+    "m_jupiter_lower_limit",
     "slice_upper_limit",
+    "m_earth_upper_limit",
+    "m_jupiter_upper_limit",
     "n",
     "a",
     "b",
@@ -106,8 +111,7 @@ def _validate_column_family(column_family: str) -> str:
 
 
 def _validate_file(file_name: str) -> Path:
-    file_path = Path(file_name).resolve(strict=False)
-    return file_path
+    return Path(file_name).resolve(strict=False)
 
 
 # ── Worker initialiser (runs once per spawned process) ─────────────────────────
@@ -153,7 +157,7 @@ def _worker_task_star(args: Tuple[float, float]) -> Dict[str, float]:
 def cli_analyze(
     in_files: list[Path],
     out_files: list[Path],
-    dex_width: float = 1.0,
+    dex_width: float = 1,
     x_col_fam: str | None = None,  # reserved for future generalisation
     y_col_fam: str | None = None,  # reserved for future generalisation
 ) -> None:
@@ -208,8 +212,7 @@ def cli_analyze(
     slices: List[Tuple[float, float]] = []
     for n in range(_ANALYZE_N_MIN, _ANALYZE_N_MAX + 1):
         for mult in _ANALYZE_MULTIPLIERS:
-            # lower = mult * 10**n
-            lower = 1e-30
+            lower = mult * 10**n
             upper = mult * 10 ** (n + dex_width)
             slices.append((lower, upper))
 
@@ -268,9 +271,9 @@ def cli_analyze(
             ):
                 completed += 1
 
-                n = result.get("n", np.nan)
-                b = result.get("b", np.nan)
-                b_std = result.get("b_std", np.nan)
+                n: float = result.get("n", np.nan)
+                b: float = result.get("b", np.nan)
+                b_std: float = result.get("b_std", np.nan)
 
                 # Derived ratios — guard against division by zero / nan
                 if np.isnan(b) or b == 0 or np.isnan(b_std) or b_std == 0:
@@ -282,15 +285,17 @@ def cli_analyze(
 
                 row = {
                     "slice_lower_limit": f"{lower:.3e}",
+                    "m_earth_lower_limit": f"{(lower / M_EARTH_KG):.6f}",
+                    "m_jupiter_lower_limit": f"{(lower / M_JUP_KG):.6f}",
                     "slice_upper_limit": f"{upper:.3e}",
+                    "m_earth_upper_limit": f"{(upper / M_EARTH_KG):.6f}",
+                    "m_jupiter_upper_limit": f"{(upper / M_JUP_KG):.6f}",
                     "n": result.get("n", 0),
                     "a": f"{result.get('a', np.nan):.12f}",
-                    "b": f"{b:.12f}" if not np.isnan(b) else "nan",
-                    "b_std": f"{b_std:.12f}" if not np.isnan(b_std) else "nan",
-                    "b_std/abs(b)": (
-                        f"{rel_err:.12f}" if not np.isnan(rel_err) else "nan"
-                    ),
-                    "abs(b)/b_std": f"{snr:.12f}" if not np.isnan(snr) else "nan",
+                    "b": "nan" if np.isnan(b) else f"{b:.12f}",
+                    "b_std": "nan" if np.isnan(b_std) else f"{b_std:.12f}",
+                    "b_std/abs(b)": ("nan" if np.isnan(rel_err) else f"{rel_err:.12f}"),
+                    "abs(b)/b_std": "nan" if np.isnan(snr) else f"{snr:.12f}",
                 }
                 writer.writerow(row)
 
@@ -298,8 +303,10 @@ def cli_analyze(
                 out_fh.flush()
 
                 console.print(
-                    f"[{completed:>3}/{total}] data points: {n}; "
-                    f"{lower:.3e} – {upper:.3e} "
+                    f"[{completed:>3}/{total} data points: {n}] "
+                    f"[{lower:.3e} – {upper:.3e}] "
+                    f"<{(lower/M_EARTH_KG):.6f} – {(upper/M_EARTH_KG):.6f}> "
+                    f"<{(lower/M_JUP_KG):.6f} – {(upper/M_JUP_KG):.6f}> "
                     f"b={b:.9f}, b_std={b_std:.12f}, bre={rel_err:.12f}  snr={snr:.12f}",
                 )
 
@@ -352,12 +359,12 @@ def cli_extract(
 
     if not len(in_paths):
         console.print("No input CSV data file speicifed.")
-        return
+        return None
 
     for in_path in in_paths:
         if not in_path.exists():
             console.print(f"File '{os.path.relpath(str(in_path))}' does not exist")
-            return
+            return None
 
     in_files = [str(p) for p in in_paths]
 
@@ -365,20 +372,11 @@ def cli_extract(
         console.print("No columns to extract were given.")
         return None
 
-    # df_list: list[pd.DataFrame] = []
-
-    # for in_file in in_files:
-    #     df_out = load_csv_to_df(in_file)
-    #     if df_out is not None:
-    #         df_list.append(df_out.set_index("pl_name"))
-
-    # df_together: pd.DataFrame = reduce(
-    #     lambda left, right: left.combine_first(right), df_list
-    # )
-
-    # df_combined = df_together.reset_index() if df_together.index.name else df_together
-
     df_combined = combine_csv_files("pl_name", [], *in_files)
+
+    if df_combined is None:
+        console.print("Error: Could not combine input files.")
+        return None
 
     console.print(f"Combined dataset has {len(df_combined)} records.")
     df_filtered = apply_filter_rules(df_combined, filter_rules)
@@ -387,11 +385,20 @@ def cli_extract(
     console.print(f"Extracted dataset has {len(df_extracted)} records.")
 
     #
-    extract_file = os.path.join(
-        DATA_DIR, EXTRACTED_DATA_FILE_TEMPLATE.replace("%T", f"{tag and '.' + tag}")
-    )
-    if save_df_to_csv(df_extracted, extract_file):
-        console.print(f"Extracted data saved to {os.path.relpath(extract_file)}")
+    if len(out_files) == 0:
+        extracted_file = os.path.join(
+            DATA_DIR, EXTRACTED_DATA_FILE_TEMPLATE.replace("%T", f"{tag and '.' + tag}")
+        )
+        if save_df_to_csv(df_extracted, extracted_file):
+            console.print(f"Extracted data saved to {os.path.relpath(extracted_file)}")
+    else:
+        extracted_path = out_files[0]
+        extracted_path.parent.mkdir(parents=True, exist_ok=True)
+        if save_df_to_csv(df_extracted, str(extracted_path)):
+            console.print(
+                f"Extracted data saved to {os.path.relpath(str(extracted_path))}"
+            )
+
     return df_extracted
 
 
@@ -403,7 +410,7 @@ def cli_image(
     df_extracted: pd.DataFrame | None,
     x_col_fam: str | None,
     y_col_fam: str | None,
-):
+) -> None:
     if not x_col_fam:
         console.print("You must set an X-axis column family with --x-column-family/-x")
         return
@@ -442,22 +449,22 @@ def cli_image(
     console.print(
         f"Starting bayesian regression for masses {reg_min} to {reg_max}...", end=""
     )
-    trend = None
+    trend: Optional[Dict[str, float]] = None
 
     if reg_max is not None and reg_min is not None:
-        trend: Optional[Dict[str, float]] = run_bayesian_slice_weighted(
+        trend = run_bayesian_slice_weighted(
             df_pull,
             reg_min,
             reg_max,
         )
     elif reg_max is not None:
-        trend: Optional[Dict[str, float]] = run_bayesian_slice_weighted(
+        trend = run_bayesian_slice_weighted(
             df_pull,
             1e-30,
             reg_max,
         )
     elif reg_min is not None:
-        trend: Optional[Dict[str, float]] = run_bayesian_slice_weighted(
+        trend = run_bayesian_slice_weighted(
             df_pull,
             reg_min,
             1e30,
@@ -625,7 +632,6 @@ def main() -> None:
     args = parser.parse_args()
 
     df_raw = None
-    df_extras = None
     df_extracted = None
 
     if args.help_columns:
@@ -641,10 +647,6 @@ def main() -> None:
     )
     calculated_data_file = os.path.join(
         DATA_DIR, CALCULATED_DATA_FILE_TEMPLATE.replace("%t", data_table)
-    )
-    extracted_file = os.path.join(
-        DATA_DIR,
-        EXTRACTED_DATA_FILE_TEMPLATE.replace("%T", f"{args.tag and '.' + args.tag}"),
     )
     # get the columns
     columns_list = get_column_list(args.column)
@@ -671,9 +673,7 @@ def main() -> None:
         )
 
     if args.calculate:
-        df_extras = cli_calculate(
-            df_raw, raw_data_file, calculated_data_file, data_table
-        )
+        cli_calculate(df_raw, raw_data_file, calculated_data_file, data_table)
 
     if args.extract:
         cli_extract(

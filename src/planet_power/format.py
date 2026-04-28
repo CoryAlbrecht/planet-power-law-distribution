@@ -49,14 +49,14 @@ def format_workbook(path: str, n_rows: int) -> None:
 
     for row in ws.iter_rows(min_row=2, max_row=n_rows + 1):
         for cell in row:
-            col_name: str = ws.cell(row=1, column=cell.column).value or ""  # type: ignore[reportUnknownMemberType]
-            group: str = COLUMN_GROUPS.get(col_name, "Unknown")  # type: ignore[reportUnknownArgumentType]
-            grp_hex: str = GROUP_COLOURS.get(group, "FFFFFF")
+            col_name_inner: str = ws.cell(row=1, column=cell.column).value or ""  # type: ignore[reportUnknownMemberType]
+            group_inner: str = COLUMN_GROUPS.get(col_name_inner, "Unknown")  # type: ignore[reportUnknownArgumentType]
+            grp_hex_inner: str = GROUP_COLOURS.get(group_inner, "FFFFFF")
             cell.font = data_font
             cell.alignment = data_align_c
             cell.border = thin_border
             if cell.row % 2 == 0:  # type: ignore[reportOptionalOperand]
-                cell.fill = PatternFill("solid", start_color=grp_hex)
+                cell.fill = PatternFill("solid", start_color=grp_hex_inner)
 
         ws.row_dimensions[cell.row].height = 15  # type: ignore[reportPossiblyUnboundVariable]
 
